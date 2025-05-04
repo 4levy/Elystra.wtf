@@ -283,7 +283,7 @@ task.spawn(function()
                 end
             end
             
-            task.wait(57)
+            task.wait(50)
 
             if tweenPlatform then
                 tweenPlatform:Destroy()
