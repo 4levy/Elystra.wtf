@@ -106,18 +106,6 @@ SectionA:addToggle({
     title = "Auto Prompt ทอง",
     callback = function(value)
         autoPromptEnabled = value
-        
-        if value then
-            UI:Notify({
-                title = "Auto Prompt",
-                text = "Started"
-            })
-        else
-            UI:Notify({
-                title = "Auto Prompt",
-                text = "Stopped"
-            })
-        end
     end
 })
 
@@ -130,18 +118,6 @@ SectionA:addToggle({
         local character = player.Character or player.CharacterAdded:Wait()
         local hrp = character:WaitForChild("HumanoidRootPart")
         hrp.CFrame = CFrame.new(Vector3.new(51.839500, 69.451118, 6.100793))
-
-        if value then
-            UI:Notify({
-                title = "Auto Sell",
-                text = "Started"
-            })
-        else
-            UI:Notify({
-                title = "Auto Sell",
-                text = "Stopped"
-            })
-        end
     end
 })
 
@@ -149,18 +125,6 @@ SectionA:addToggle({
     title = "Enable Prompt เมื่อร้านปิด",
     callback = function(value)
         alwaysEnablePrompt = value
-        
-        if value then
-            UI:Notify({
-                title = "Always Enable",
-                text = "Started"
-            })
-        else
-            UI:Notify({
-                title = "Always Enable",
-                text = "Stopped"
-            })
-        end
     end
 })
 
@@ -168,18 +132,6 @@ SectionA:addToggle({
     title = "Auto Tween",
     callback = function(value)
         autoTweenEnabled = value
-        
-        if value then
-            UI:Notify({
-                title = "Auto Tween",
-                text = "Started"
-            })
-        else
-            UI:Notify({
-                title = "Auto Tween",
-                text = "Stopped"
-            })
-        end
     end
 })
 
@@ -744,7 +696,6 @@ Players.PlayerRemoving:Connect(function()
     createPlayerDropdown()
 end)
 
--- Add action buttons
 SectionB:addButton({
     title = "Spectate Player",
     callback = function()
@@ -907,56 +858,6 @@ SectionB:addSlider({
     end
 })
 
-
--- // Theme Page
-local Theme = UI:addPage({ title = "Theme", icon = 5012544693 })
-local Colors = Theme:addSection({ title = "Colors" })
-
--- // Add Rainbow Theme toggle first
-local rainbowConnection = nil
-local rainbowRunning = false
-
--- Rainbow Theme Toggle
-Colors:addToggle({
-    title = "Rainbow Theme",
-    callback = function(state)
-        rainbowRunning = state
-        
-        if rainbowRunning then
-            if rainbowConnection then
-                rainbowConnection:Disconnect()
-            end
-            
-            rainbowConnection = RunService.RenderStepped:Connect(function()
-                local hue = tick() % 10 / 10  
-                local color = Color3.fromHSV(hue, 1, 1) 
-
-
-                UI:setTheme({ theme = "TextColor", color3 = color })
-                UI:setTheme({ theme = "Glow", color3 = color })
-            end)
-        else
-            if rainbowConnection then
-                rainbowConnection:Disconnect()
-                rainbowConnection = nil
-
-                UI:setTheme({ theme = "Glow", color3 = Themes.Glow })
-                UI:setTheme({ theme = "TextColor", color3 = Themes.TextColor })
-            end
-        end
-    end
-})
-
--- // Add regular theme color pickers
-for theme, color in pairs(Themes) do
-    Colors:addColorPicker({
-        title = theme,
-        default = color,
-        callback = function(color3)
-            UI:setTheme({ theme = theme, color3 = color3 })
-        end
-    })
-end
 
 -- // Misc Page
 local Misc = UI:addPage({ title = "Misc", icon = 5012544693 })
@@ -1233,6 +1134,146 @@ MiscSection2:addButton({
         end)
     end
 })
+
+-- // Trade
+local Trading = UI:addPage({ title = "Trade", icon = 5012544693 })
+local TradeSection = Trading:addSection({ title = "Trade" })
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local selectedPlayerName = nil
+local tradeDropdown
+
+local function getPlayerNames()
+    local names = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(names, player.Name)
+        end
+    end
+    return names
+end
+
+-- Create the dropdown list
+local function createPlayerDropdown()
+    local playerList = getPlayerNames()
+    if #playerList > 0 then
+        tradeDropdown = TradeSection:addDropdown({
+            title = "Select Player",
+            list = playerList,
+            callback = function(name)
+                selectedPlayerName = name
+                UI:Notify({
+                    title = "Player Selected",
+                    text = "Selected: " .. name
+                })
+            end
+        })
+    else
+        UI:Notify({
+            title = "Player List",
+            text = "No other players found!"
+        })
+    end
+end
+
+-- Refresh Player List
+TradeSection:addButton({
+    title = "Refresh Player List",
+    callback = function()
+        pcall(function()
+            if tradeDropdown then
+                tradeDropdown:Remove()
+                tradeDropdown = nil
+            end
+            createPlayerDropdown()
+        end)
+    end
+})
+
+TradeSection:addButton({
+    title = "Send Trade",
+    callback = function()
+        if not selectedPlayerName then
+            UI:Notify({
+                title = "Trade Error",
+                text = "Please select a player first!"
+            })
+            return
+        end
+
+        local targetPlayer = Players:FindFirstChild(selectedPlayerName)
+        if targetPlayer then
+            local args = { targetPlayer }
+            ReplicatedStorage:WaitForChild("Trade_Folder"):WaitForChild("Trade_Notify"):FireServer(unpack(args))
+
+            UI:Notify({
+                title = "Trade Sent",
+                text = "Trade request sent to " .. selectedPlayerName
+            })
+        else
+            UI:Notify({
+                title = "Trade Error",
+                text = "Player not found!"
+            })
+        end
+    end
+})
+
+createPlayerDropdown()
+
+
+-- // Theme Page
+local Theme = UI:addPage({ title = "Theme", icon = 5012544693 })
+local Colors = Theme:addSection({ title = "Colors" })
+
+-- // Add Rainbow Theme toggle first
+local rainbowConnection = nil
+local rainbowRunning = false
+
+-- Rainbow Theme Toggle
+Colors:addToggle({
+    title = "Rainbow Theme",
+    callback = function(state)
+        rainbowRunning = state
+        
+        if rainbowRunning then
+            if rainbowConnection then
+                rainbowConnection:Disconnect()
+            end
+            
+            rainbowConnection = RunService.RenderStepped:Connect(function()
+                local hue = tick() % 10 / 10  
+                local color = Color3.fromHSV(hue, 1, 1) 
+
+
+                UI:setTheme({ theme = "TextColor", color3 = color })
+                UI:setTheme({ theme = "Glow", color3 = color })
+            end)
+        else
+            if rainbowConnection then
+                rainbowConnection:Disconnect()
+                rainbowConnection = nil
+
+                UI:setTheme({ theme = "Glow", color3 = Themes.Glow })
+                UI:setTheme({ theme = "TextColor", color3 = Themes.TextColor })
+            end
+        end
+    end
+})
+
+-- // Add regular theme color pickers
+for theme, color in pairs(Themes) do
+    Colors:addColorPicker({
+        title = theme,
+        default = color,
+        callback = function(color3)
+            UI:setTheme({ theme = theme, color3 = color3 })
+        end
+    })
+end
 
 -- // END Key toggler
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
