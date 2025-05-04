@@ -790,6 +790,45 @@ SectionB:addButton({
     end
 })
 
+local withdrawAmount = 0
+
+SectionB:addTextbox({
+    title = "Withdraw Amount",
+    default = "0",
+    callback = function(value)
+        withdrawAmount = tonumber(value) or 0
+    end
+})
+
+SectionB:addButton({
+    title = "Withdraw Money",
+    callback = function()
+        if withdrawAmount <= 0 then
+            UI:Notify({
+                title = "Withdraw Error",
+                text = "Please enter a valid amount!"
+            })
+            return
+        end
+        
+        pcall(function()
+            local args = {
+                "Withdraw",
+                withdrawAmount
+            }
+            
+            local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+            
+            if result then
+                UI:Notify({
+                    title = "Withdraw Success",
+                    text = "Withdrew $" .. withdrawAmount .. " from bank"
+                })
+            end
+        end)
+    end
+})
+
 SectionB:addSlider({
     title = "Walk Speed",
     default = 16, 
