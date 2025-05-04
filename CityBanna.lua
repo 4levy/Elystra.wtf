@@ -907,6 +907,7 @@ SectionB:addSlider({
     end
 })
 
+
 -- // Theme Page
 local Theme = UI:addPage({ title = "Theme", icon = 5012544693 })
 local Colors = Theme:addSection({ title = "Colors" })
@@ -1108,6 +1109,52 @@ MiscSection:addButton({
             title = "!",
             text = "Click Teleport Tool Added to Backpack"
         })
+    end
+})
+
+MiscSection:addButton({
+    title = "Turn off PVP",
+    default = false,
+    callback = function(value)
+        local args = {
+            "PVP",
+            false
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("ChangeValue"):FireServer(unpack(args))
+        
+    end
+})
+
+MiscSection:addButton({
+    title = "Turn on PVP",
+    default = false,
+    callback = function(value)
+        local args = {
+            "PVP",
+            true
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("ChangeValue"):FireServer(unpack(args))
+        
+    end
+})
+local player = Players.LocalPlayer
+
+MiscSection:addButton({
+    title = "Reset",
+    callback = function()
+        local character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local savedPosition = character.HumanoidRootPart.Position
+
+            player.CharacterAdded:Once(function(newChar)
+                local hrp = newChar:WaitForChild("HumanoidRootPart")
+                hrp.CFrame = CFrame.new(savedPosition + Vector3.new(0, 5, 0)) 
+            end)
+
+            if character:FindFirstChild("Humanoid") then
+                character.Humanoid.Health = 0
+            end
+        end
     end
 })
 
