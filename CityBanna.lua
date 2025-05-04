@@ -1,4 +1,3 @@
--- // Initialising the UI
 local Venyx = loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/Venyx-UI-Library/main/source2.lua"))()
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
@@ -25,11 +24,35 @@ end)
 
 local function tweenTo(pos, speed)
     if not humanoidRootPart then return end
-    local distance = (humanoidRootPart.Position - pos).Magnitude
+    
+    local startPos = humanoidRootPart.Position
+    local distance = (startPos - pos).Magnitude
     local time = distance / speed
-    local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
-    tween:Play()
-    tween.Completed:Wait()
+    
+    local midPoint = startPos + (pos - startPos) * 0.5 + Vector3.new(0, math.min(distance * 0.2, 20), 0)
+    
+    local info = TweenInfo.new(
+        time,
+        Enum.EasingStyle.Sine,
+        Enum.EasingDirection.InOut, 
+        0, 
+        false,
+        0 
+    )
+    
+    local waypoints = {
+        CFrame.new(startPos),
+        CFrame.new(midPoint),
+        CFrame.new(pos)
+    }
+    
+    for i = 2, #waypoints do
+        local tween = TweenService:Create(humanoidRootPart, info, {
+            CFrame = waypoints[i]
+        })
+        tween:Play()
+        tween.Completed:Wait()
+    end
 end
 
 -- // Themes config 
@@ -276,7 +299,7 @@ task.spawn(function()
     end
 end)
 
--- // ENd 
+-- // END 
 
 local Aroundmap = UI:addPage({ title = "Teleport", icon = 5012544693 })
 local SectionA = Aroundmap:addSection({ title = "Teleport" })
@@ -566,7 +589,7 @@ local selectedPlayerName = nil
 local dropdown
 
 local function getPlayerNames()
-    local names = {}
+    local names = table.create(#Players:GetPlayers() - 1)
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
             table.insert(names, player.Name)
@@ -642,7 +665,29 @@ local function transferMoney(amount, playerName)
 end
 
 local function createPlayerDropdown()
+    -- Remove existing dropdown
+    if dropdown then
+        dropdown:Remove()
+        dropdown = nil
+    end
+    
     local playerList = getPlayerNames()
+    
+    -- Reset selected player if they're no longer in game
+    if selectedPlayerName then
+        local playerStillExists = false
+        for _, name in ipairs(playerList) do
+            if name == selectedPlayerName then
+                playerStillExists = true
+                break
+            end
+        end
+        if not playerStillExists then
+            selectedPlayerName = nil
+        end
+    end
+    
+    -- Create new dropdown with current player list
     if #playerList > 0 then
         dropdown = SectionB:addDropdown({
             title = "Select Player",
@@ -667,10 +712,6 @@ SectionB:addButton({
     title = "Refresh Player List",
     callback = function()
         pcall(function()
-            if dropdown then
-                dropdown:Remove()
-                dropdown = nil
-            end
             createPlayerDropdown()
         end)
     end
@@ -678,20 +719,15 @@ SectionB:addButton({
 
 createPlayerDropdown()
 
-Players.PlayerAdded:Connect(function()
-    wait(0.5)
-    if dropdown then
-        dropdown:Remove()
-        dropdown = nil
-    end
+Players.PlayerAdded:Connect(function(player)
+    task.wait(0.1) -- Small delay to ensure character loads
     createPlayerDropdown()
 end)
 
-Players.PlayerRemoving:Connect(function()
-    wait(0.5)
-    if dropdown then
-        dropdown:Remove()
-        dropdown = nil
+Players.PlayerRemoving:Connect(function(player)
+    task.wait(0.1) -- Small delay to ensure player is fully removed
+    if player.Name == selectedPlayerName then
+        selectedPlayerName = nil
     end
     createPlayerDropdown()
 end)
@@ -873,7 +909,6 @@ Players.LocalPlayer.Idled:Connect(function()
 	end
 end)
 
--- UI Toggle
 MiscSection:addToggle({
     title = "Anti AFK",
     default = true, 
@@ -1139,34 +1174,38 @@ MiscSection2:addButton({
 local Trading = UI:addPage({ title = "Trade", icon = 5012544693 })
 local TradeSection = Trading:addSection({ title = "Trade" })
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-
-local selectedPlayerName = nil
+local selectedTradePlayer = nil
 local tradeDropdown
 
-local function getPlayerNames()
-    local names = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            table.insert(names, player.Name)
+local function createTradeDropdown()
+    if tradeDropdown then
+        tradeDropdown:Remove()
+        tradeDropdown = nil
+    end
+    
+    local playerList = getPlayerNames()
+    
+    if selectedTradePlayer then
+        local playerStillExists = false
+        for _, name in ipairs(playerList) do
+            if name == selectedTradePlayer then
+                playerStillExists = true
+                break
+            end
+        end
+        if not playerStillExists then
+            selectedTradePlayer = nil
         end
     end
-    return names
-end
-
--- Create the dropdown list
-local function createPlayerDropdown()
-    local playerList = getPlayerNames()
+    
     if #playerList > 0 then
         tradeDropdown = TradeSection:addDropdown({
             title = "Select Player",
             list = playerList,
             callback = function(name)
-                selectedPlayerName = name
+                selectedTradePlayer = name
                 UI:Notify({
-                    title = "Player Selected",
+                    title = "Trade Player Selected",
                     text = "Selected: " .. name
                 })
             end
@@ -1179,16 +1218,11 @@ local function createPlayerDropdown()
     end
 end
 
--- Refresh Player List
 TradeSection:addButton({
-    title = "Refresh Player List",
+    title = "Refresh List",
     callback = function()
         pcall(function()
-            if tradeDropdown then
-                tradeDropdown:Remove()
-                tradeDropdown = nil
-            end
-            createPlayerDropdown()
+            createTradeDropdown()
         end)
     end
 })
@@ -1196,7 +1230,7 @@ TradeSection:addButton({
 TradeSection:addButton({
     title = "Send Trade",
     callback = function()
-        if not selectedPlayerName then
+        if not selectedTradePlayer then
             UI:Notify({
                 title = "Trade Error",
                 text = "Please select a player first!"
@@ -1204,14 +1238,14 @@ TradeSection:addButton({
             return
         end
 
-        local targetPlayer = Players:FindFirstChild(selectedPlayerName)
+        local targetPlayer = Players:FindFirstChild(selectedTradePlayer)
         if targetPlayer then
             local args = { targetPlayer }
             ReplicatedStorage:WaitForChild("Trade_Folder"):WaitForChild("Trade_Notify"):FireServer(unpack(args))
 
             UI:Notify({
                 title = "Trade Sent",
-                text = "Trade request sent to " .. selectedPlayerName
+                text = "Trade request sent to " .. selectedTradePlayer
             })
         else
             UI:Notify({
@@ -1222,8 +1256,20 @@ TradeSection:addButton({
     end
 })
 
-createPlayerDropdown()
+createTradeDropdown()
 
+Players.PlayerAdded:Connect(function()
+    task.wait(0.1)
+    createTradeDropdown()
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    task.wait(0.1)
+    if player.Name == selectedTradePlayer then
+        selectedTradePlayer = nil
+    end
+    createTradeDropdown()
+end)
 
 -- // Theme Page
 local Theme = UI:addPage({ title = "Theme", icon = 5012544693 })
