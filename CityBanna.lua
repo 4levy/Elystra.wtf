@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
+
 local UI = Venyx.new({
     title = "Elystra.wtf | Beta"
     
@@ -57,7 +58,6 @@ local alwaysEnablePrompt = false
 local autoTweenEnabled = false
 local tweenPlatform = nil
 
--- Add platform creation function
 local function createTweenPlatform(position)
     if tweenPlatform then
         tweenPlatform:Destroy()
@@ -68,7 +68,7 @@ local function createTweenPlatform(position)
     tweenPlatform.Size = Vector3.new(15, 1, 15)
     tweenPlatform.Position = position + Vector3.new(0, -4.5, 0)
     tweenPlatform.Transparency = 0.5
-    tweenPlatform.BrickColor = BrickColor.new("Really blue")
+    tweenPlatform.BrickColor = BrickColor.new("Really White")
     tweenPlatform.CanCollide = true
     tweenPlatform.Name = "TweenPlatform"
     tweenPlatform.Parent = workspace
@@ -237,7 +237,6 @@ task.spawn(function()
             local firstPos = Vector3.new(242, 70, 56)
             local secondPos = Vector3.new(141, 70, 277)
             
-            -- First position
             safeTweenTo(firstPos, 10)
             
             for _ = 1, 2 do 
@@ -259,7 +258,6 @@ task.spawn(function()
                 end
             end
             
-            -- Second position
             safeTweenTo(secondPos, 10)
             
             for _ = 1, 4 do
@@ -306,14 +304,12 @@ task.spawn(function()
             end
             
             task.wait(57)
-            
-            -- Clean up platform when waiting
+
             if tweenPlatform then
                 tweenPlatform:Destroy()
                 tweenPlatform = nil
             end
         else
-            -- Clean up platform when disabled
             if tweenPlatform then
                 tweenPlatform:Destroy()
                 tweenPlatform = nil
@@ -604,6 +600,196 @@ SectionA:addButton({
 })
 
 
+-- // Players
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local selectedPlayerName = nil
+local currentDropdown
+
+local function getPlayerNames()
+    local names = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(names, player.Name)
+        end
+    end
+    return names
+end
+
+local function spectatePlayer(playerName)
+    local targetPlayer = Players:FindFirstChild(playerName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
+        Camera.CameraSubject = targetPlayer.Character.Humanoid
+        Camera.CameraType = Enum.CameraType.Custom
+        print("Now spectating:", playerName)
+    else
+        warn("Could not spectate player:", playerName)
+    end
+end
+
+local function createPlayerDropdown()
+    if currentDropdown then
+        currentDropdown:Destroy() 
+    end
+
+    currentDropdown = SectionB:addDropdown({
+        title = "Select Player to Spectate",
+        list = getPlayerNames(),
+        callback = function(name)
+            selectedPlayerName = name
+            print("Selected player:", name)
+        end
+    })
+end
+
+createPlayerDropdown()
+
+Players.PlayerAdded:Connect(createPlayerDropdown)
+Players.PlayerRemoving:Connect(createPlayerDropdown)
+
+SectionB:addButton({
+    title = "Spectate Player",
+    callback = function()
+        if selectedPlayerName then
+            spectatePlayer(selectedPlayerName)
+        else
+            warn("No player selected.")
+        end
+    end
+})
+
+SectionB:addButton({
+    title = "Stop Spectating",
+    callback = function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            Camera.CameraSubject = LocalPlayer.Character.Humanoid
+            Camera.CameraType = Enum.CameraType.Custom
+            print("Stopped spectating.")
+        end
+    end
+})
+
+-- Add Teleport to Player button
+SectionB:addButton({
+    title = "Teleport to Player",
+    callback = function()
+        if not selectedPlayerName then
+            UI:Notify({
+                title = "Teleport Error",
+                text = "Please select a player first!"
+            })
+            return
+        end
+        
+        local targetPlayer = Players:FindFirstChild(selectedPlayerName)
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetHRP = targetPlayer.Character.HumanoidRootPart
+            
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = targetHRP.CFrame
+                UI:Notify({
+                    title = "Teleport Success",
+                    text = "Teleported to " .. selectedPlayerName
+                })
+            end
+        else
+            UI:Notify({
+                title = "Teleport Error",
+                text = "Could not teleport to player!"
+            })
+        end
+    end
+})
+
+local transferAmount = 0
+
+SectionB:addTextbox({
+    title = "Transfer Amount",
+    default = "0",
+    callback = function(value)
+        transferAmount = tonumber(value) or 0
+    end
+})
+
+SectionB:addButton({
+    title = "Transfer Money",
+    callback = function()
+        if not selectedPlayerName then
+            UI:Notify({
+                title = "Transfer Error",
+                text = "Please select a player first!"
+            })
+            return
+        end
+        
+        if transferAmount <= 0 then
+            UI:Notify({
+                title = "Transfer Error",
+                text = "Please enter a valid amount!"
+            })
+            return
+        end
+        
+        pcall(function()
+            local args = {
+                "Transfer",
+                transferAmount,
+                selectedPlayerName
+            }
+            
+            local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+            
+            if result then
+                UI:Notify({
+                    title = "Transfer Success",
+                    text = "Transferred $" .. transferAmount .. " to " .. selectedPlayerName
+                })
+            end
+        end)
+    end
+})
+
+local depositAmount = 0
+
+SectionB:addTextbox({
+    title = "Deposit Amount",
+    default = "0",
+    callback = function(value)
+        depositAmount = tonumber(value) or 0
+    end
+})
+
+SectionB:addButton({
+    title = "Deposit Money",
+    callback = function()
+        if depositAmount <= 0 then
+            UI:Notify({
+                title = "Deposit Error",
+                text = "Please enter a valid amount!"
+            })
+            return
+        end
+        
+        pcall(function()
+            local args = {
+                "Deposit",
+                depositAmount
+            }
+            
+            local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+            
+            if result then
+                UI:Notify({
+                    title = "Deposit Success",
+                    text = "Deposited $" .. depositAmount .. " into bank"
+                })
+            end
+        end)
+    end
+})
+
 SectionB:addSlider({
     title = "Walk Speed",
     default = 16, 
@@ -745,6 +931,31 @@ MiscSection:addToggle({
 })
 
 MiscSection:addButton({
+    title = "Remove Cam Shake",
+    callback = function()
+        local RunService = game:GetService("RunService")
+        local UserGameSettings = UserSettings():GetService("UserGameSettings")
+        
+        UserGameSettings.CameraShake = 0
+        
+        for _, v in pairs(game:GetDescendants()) do
+            if v:IsA("CameraScript") or v:IsA("Camera") then
+                pcall(function()
+                    v.CameraShake = 0
+                    v.CameraShakeInstance = nil
+                    v:Destroy()
+                end)
+            end
+        end
+        
+        UI:Notify({
+            title = "Camera Shake",
+            text = "Camera shake has been disabled"
+        })
+    end
+})
+
+MiscSection:addButton({
     title = "Fix Cam",
     callback = function()
         local speaker = game.Players.LocalPlayer
@@ -784,7 +995,6 @@ MiscSection:addButton({
     end
 })
 
-
 MiscSection:addButton({
     title = "Click Teleport Tool",
     callback = function()
@@ -808,7 +1018,6 @@ MiscSection:addButton({
     end
 })
 
-
 -- // Proper UI Close Button
 MiscSection2:addButton({
     title = "Close UI",
@@ -818,13 +1027,11 @@ MiscSection2:addButton({
             tweenPlatform = nil
         end
 
-        -- Stop all running processes
         rainbowRunning = false
         autoFarmEnabled = false
         antiAFKEnabled = false
         noclipEnabled = false
         
-        -- Cleanup connections
         if rainbowConnection then
             rainbowConnection:Disconnect()
             rainbowConnection = nil
@@ -844,17 +1051,14 @@ MiscSection2:addButton({
             _G.walkSpeedConnection:Disconnect()
             _G.walkSpeedConnection = nil
         end
-        
-        -- Reset character states
+
         local player = game.Players.LocalPlayer
         if player.Character then
-            -- Reset walkspeed
             local humanoid = player.Character:FindFirstChild("Humanoid")
             if humanoid then
                 humanoid.WalkSpeed = 16
             end
             
-            -- Reset collision
             for _, part in pairs(player.Character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = true
@@ -862,13 +1066,10 @@ MiscSection2:addButton({
             end
         end
         
-        -- Clear global variables
         _G.savedWalkSpeed = nil
         
-        -- Clear all notifications
         for _, v in pairs(CoreGui:GetChildren()) do
             if v:IsA("ScreenGui") then
-                -- Clear Venyx notifications
                 for _, notification in pairs(v:GetChildren()) do
                     if notification.Name == "Notification" or notification:FindFirstChild("Title") then
                         notification:Destroy()
@@ -879,7 +1080,6 @@ MiscSection2:addButton({
         
         uiDestroyed = true
         
-        -- Destroy UI and cleanup
         task.spawn(function()
             UI:toggle()
             task.wait(0.5)
@@ -889,9 +1089,7 @@ MiscSection2:addButton({
                     v:Destroy()
                 end
             end
-            
-            -- Break the script execution
-            error("Script terminated by user")
+
         end)
     end
 })
