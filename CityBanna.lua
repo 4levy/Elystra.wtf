@@ -234,9 +234,15 @@ end)
 task.spawn(function()
     while true do
         if autoTweenEnabled then
+
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local hrp = character:WaitForChild("HumanoidRootPart")
+            hrp.CFrame = CFrame.new(Vector3.new(237.833130, 70.167351, 62.568726))
+
             local firstPos = Vector3.new(242, 70, 56)
             local secondPos = Vector3.new(141, 70, 277)
-            
+
             safeTweenTo(firstPos, 10)
             
             for _ = 1, 2 do 
@@ -280,8 +286,7 @@ task.spawn(function()
                 end
                 task.wait(0.1)
             end
-            
-            -- Back to first position
+
             safeTweenTo(firstPos, 10)
             
             for _ = 1, 400 do
