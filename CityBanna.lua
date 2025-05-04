@@ -635,24 +635,65 @@ local function spectatePlayer(playerName)
 end
 
 local function createPlayerDropdown()
+    -- Remove old dropdown if it exists
     if currentDropdown then
-        currentDropdown:Destroy() 
+        pcall(function()
+            currentDropdown:Remove()
+            currentDropdown = nil
+        end)
     end
 
-    currentDropdown = SectionB:addDropdown({
-        title = "Select Player to Spectate",
-        list = getPlayerNames(),
-        callback = function(name)
-            selectedPlayerName = name
-            print("Selected player:", name)
-        end
-    })
+    -- Create new dropdown with current player list
+    local playerList = getPlayerNames()
+    if #playerList > 0 then
+        currentDropdown = SectionB:addDropdown({
+            title = "Select Player to Spectate",
+            list = playerList,
+            callback = function(name)
+                selectedPlayerName = name
+                print("Selected player:", name)
+                -- Don't recreate dropdown here to avoid recursion
+                UI:Notify({
+                    title = "Player Selected",
+                    text = "Selected player: " .. name
+                })
+            end
+        })
+    else
+        UI:Notify({
+            title = "Player List",
+            text = "No other players found!"
+        })
+    end
 end
 
-createPlayerDropdown()
+-- Add refresh button with error handling
+SectionB:addButton({
+    title = "Refresh Player List",
+    callback = function()
+        pcall(function()
+            createPlayerDropdown()
+            UI:Notify({
+                title = "Player List",
+                text = "Player list has been refreshed!"
+            })
+        end)
+    end
+})
 
-Players.PlayerAdded:Connect(createPlayerDropdown)
-Players.PlayerRemoving:Connect(createPlayerDropdown)
+-- Initial creation with error handling
+pcall(createPlayerDropdown)
+
+-- Set up player connections
+Players.PlayerAdded:Connect(function()
+    task.wait(1) -- Give time for character to load
+    pcall(createPlayerDropdown)
+end)
+
+Players.PlayerRemoving:Connect(function()
+    task.wait(1) -- Give time for player to fully remove
+    pcall(createPlayerDropdown)
+end)
 
 SectionB:addButton({
     title = "Spectate Player",
