@@ -7,7 +7,14 @@ local scripts = {
 }
 
 local defaultScript = function()
-    print("Executing Default Script for an unrecognized Place ID")
+    local player = game.Players.LocalPlayer
+    if player then
+        pcall(function()
+            player:Kick("\nElystra.wtf\n\nThis game is not supported!")
+        end)
+    end
+    task.wait(1)
+    game:Shutdown()
 end
 
 if scripts[placeId] then
@@ -15,3 +22,5 @@ if scripts[placeId] then
 else
     defaultScript()
 end
+
+-- // loadstring(game:HttpGet("https://raw.githubusercontent.com/4levy/Elystra.wtf/refs/heads/main/Loader.lua"))()
