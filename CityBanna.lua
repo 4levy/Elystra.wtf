@@ -611,7 +611,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 local selectedPlayerName = nil
-local currentDropdown
+local dropdown
 
 local function getPlayerNames()
     local names = {}
@@ -634,17 +634,65 @@ local function spectatePlayer(playerName)
     end
 end
 
-local function createPlayerDropdown()
-    if currentDropdown then
-        pcall(function()
-            currentDropdown:Remove()
-            currentDropdown = nil
-        end)
+local function teleportToPlayer(playerName)
+    local targetPlayer = Players:FindFirstChild(playerName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetHRP = targetPlayer.Character.HumanoidRootPart
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = targetHRP.CFrame
+            UI:Notify({
+                title = "Teleport Success",
+                text = "Teleported to " .. playerName
+            })
+        end
+    else
+        UI:Notify({
+            title = "Teleport Error",
+            text = "Could not teleport to player!"
+        })
     end
+end
 
+local function stopSpectating()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        Camera.CameraSubject = LocalPlayer.Character.Humanoid
+        Camera.CameraType = Enum.CameraType.Custom
+        print("Stopped spectating.")
+    end
+end
+
+local function transferMoney(amount, playerName)
+    if amount <= 0 then
+        UI:Notify({
+            title = "Transfer Error",
+            text = "Please enter a valid amount!"
+        })
+        return
+    end
+    
+    pcall(function()
+        local args = {
+            "Transfer",
+            amount,
+            playerName
+        }
+        
+        local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+        
+        if result then
+            UI:Notify({
+                title = "Transfer Success",
+                text = "Transferred $" .. amount .. " to " .. playerName
+            })
+        end
+    end)
+end
+
+local function createPlayerDropdown()
     local playerList = getPlayerNames()
     if #playerList > 0 then
-        currentDropdown = SectionB:addDropdown({
+        dropdown = SectionB:addDropdown({
             title = "Select Player",
             list = playerList,
             callback = function(name)
@@ -663,37 +711,50 @@ local function createPlayerDropdown()
     end
 end
 
--- Add refresh button
 SectionB:addButton({
-    title = "Refresh List",
+    title = "Refresh Player List",
     callback = function()
         pcall(function()
+            if dropdown then
+                dropdown:Remove()
+                dropdown = nil
+            end
             createPlayerDropdown()
         end)
     end
 })
 
--- Initial creation
 createPlayerDropdown()
 
--- Update on player changes
 Players.PlayerAdded:Connect(function()
     wait(0.5)
+    if dropdown then
+        dropdown:Remove()
+        dropdown = nil
+    end
     createPlayerDropdown()
 end)
 
 Players.PlayerRemoving:Connect(function()
     wait(0.5)
+    if dropdown then
+        dropdown:Remove()
+        dropdown = nil
+    end
     createPlayerDropdown()
 end)
 
+-- Add action buttons
 SectionB:addButton({
     title = "Spectate Player",
     callback = function()
         if selectedPlayerName then
             spectatePlayer(selectedPlayerName)
         else
-            warn("No player selected.")
+            UI:Notify({
+                title = "Spectate Error",
+                text = "No player selected."
+            })
         end
     end
 })
@@ -701,41 +762,19 @@ SectionB:addButton({
 SectionB:addButton({
     title = "Stop Spectating",
     callback = function()
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            Camera.CameraSubject = LocalPlayer.Character.Humanoid
-            Camera.CameraType = Enum.CameraType.Custom
-            print("Stopped spectating.")
-        end
+        stopSpectating()
     end
 })
 
--- Add Teleport to Player button
 SectionB:addButton({
     title = "Teleport to Player",
     callback = function()
-        if not selectedPlayerName then
-            UI:Notify({
-                title = "Teleport Error",
-                text = "Please select a player first!"
-            })
-            return
-        end
-        
-        local targetPlayer = Players:FindFirstChild(selectedPlayerName)
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetHRP = targetPlayer.Character.HumanoidRootPart
-            
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = targetHRP.CFrame
-                UI:Notify({
-                    title = "Teleport Success",
-                    text = "Teleported to " .. selectedPlayerName
-                })
-            end
+        if selectedPlayerName then
+            teleportToPlayer(selectedPlayerName)
         else
             UI:Notify({
                 title = "Teleport Error",
-                text = "Could not teleport to player!"
+                text = "Please select a player first!"
             })
         end
     end
@@ -762,110 +801,87 @@ SectionB:addButton({
             return
         end
         
-        if transferAmount <= 0 then
-            UI:Notify({
-                title = "Transfer Error",
-                text = "Please enter a valid amount!"
-            })
-            return
-        end
-        
-        pcall(function()
-            local args = {
-                "Transfer",
-                transferAmount,
-                selectedPlayerName
-            }
-            
-            local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
-            
-            if result then
-                UI:Notify({
-                    title = "Transfer Success",
-                    text = "Transferred $" .. transferAmount .. " to " .. selectedPlayerName
-                })
-            end
-        end)
+        transferMoney(transferAmount, selectedPlayerName)
     end
 })
 
-local depositAmount = 0
+local function depositMoney(amount)
+    if amount <= 0 then
+        UI:Notify({
+            title = "Deposit Error",
+            text = "Please enter a valid amount!"
+        })
+        return
+    end
+    
+    pcall(function()
+        local args = {
+            "Deposit",
+            amount
+        }
+        
+        local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+        
+        if result then
+            UI:Notify({
+                title = "Deposit Success",
+                text = "Deposited $" .. amount .. " into bank"
+            })
+        end
+    end)
+end
+
+local function withdrawMoney(amount)
+    if amount <= 0 then
+        UI:Notify({
+            title = "Withdraw Error",
+            text = "Please enter a valid amount!"
+        })
+        return
+    end
+    
+    pcall(function()
+        local args = {
+            "Withdraw",
+            amount
+        }
+        
+        local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
+        
+        if result then
+            UI:Notify({
+                title = "Withdraw Success",
+                text = "Withdrew $" .. amount .. " from bank"
+            })
+        end
+    end)
+end
+
+local bankAmount = 0
 
 SectionB:addTextbox({
-    title = "Deposit Amount",
+    title = "Bank Amount",
     default = "0",
     callback = function(value)
-        depositAmount = tonumber(value) or 0
+        bankAmount = tonumber(value) or 0
     end
 })
 
 SectionB:addButton({
     title = "Deposit Money",
     callback = function()
-        if depositAmount <= 0 then
-            UI:Notify({
-                title = "Deposit Error",
-                text = "Please enter a valid amount!"
-            })
-            return
-        end
-        
-        pcall(function()
-            local args = {
-                "Deposit",
-                depositAmount
-            }
-            
-            local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
-            
-            if result then
-                UI:Notify({
-                    title = "Deposit Success",
-                    text = "Deposited $" .. depositAmount .. " into bank"
-                })
-            end
-        end)
-    end
-})
-
-local withdrawAmount = 0
-
-SectionB:addTextbox({
-    title = "Withdraw Amount",
-    default = "0",
-    callback = function(value)
-        withdrawAmount = tonumber(value) or 0
+        depositMoney(bankAmount)
     end
 })
 
 SectionB:addButton({
     title = "Withdraw Money",
     callback = function()
-        if withdrawAmount <= 0 then
-            UI:Notify({
-                title = "Withdraw Error",
-                text = "Please enter a valid amount!"
-            })
-            return
-        end
-        
-        pcall(function()
-            local args = {
-                "Withdraw",
-                withdrawAmount
-            }
-            
-            local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
-            
-            if result then
-                UI:Notify({
-                    title = "Withdraw Success",
-                    text = "Withdrew $" .. withdrawAmount .. " from bank"
-                })
-            end
-        end)
+        withdrawMoney(bankAmount)
     end
 })
+
+-- END
 
 SectionB:addSlider({
     title = "Walk Speed",
