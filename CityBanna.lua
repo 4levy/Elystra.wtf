@@ -55,6 +55,52 @@ local autoPromptEnabled = false
 local autoSellEnabled = false
 local alwaysEnablePrompt = false
 local autoTweenEnabled = false
+local tweenPlatform = nil
+
+-- Add platform creation function
+local function createTweenPlatform(position)
+    if tweenPlatform then
+        tweenPlatform:Destroy()
+    end
+    
+    tweenPlatform = Instance.new("Part")
+    tweenPlatform.Anchored = true
+    tweenPlatform.Size = Vector3.new(15, 1, 15)
+    tweenPlatform.Position = position + Vector3.new(0, -4.5, 0)
+    tweenPlatform.Transparency = 0.5
+    tweenPlatform.BrickColor = BrickColor.new("Really blue")
+    tweenPlatform.CanCollide = true
+    tweenPlatform.Name = "TweenPlatform"
+    tweenPlatform.Parent = workspace
+
+    local platformConnection
+    platformConnection = RunService.Heartbeat:Connect(function()
+        if not tweenPlatform or not autoTweenEnabled then
+            if platformConnection then
+                platformConnection:Disconnect()
+            end
+            return
+        end
+        
+        if humanoidRootPart then
+            tweenPlatform.Position = humanoidRootPart.Position + Vector3.new(0, -4.5, 0)
+        end
+    end)
+end
+
+local function safeTweenTo(pos, speed)
+    if not humanoidRootPart then return end
+    
+    if not tweenPlatform then
+        createTweenPlatform(humanoidRootPart.Position)
+    end
+    
+    local distance = (humanoidRootPart.Position - pos).Magnitude
+    local time = distance / speed
+    local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
+    tween:Play()
+    tween.Completed:Wait()
+end
 
 SectionA:addToggle({
     title = "Auto Prompt ทอง",
@@ -80,6 +126,11 @@ SectionA:addToggle({
     callback = function(value)
         autoSellEnabled = value
         
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local hrp = character:WaitForChild("HumanoidRootPart")
+        hrp.CFrame = CFrame.new(Vector3.new(51.839500, 69.451118, 6.100793))
+
         if value then
             UI:Notify({
                 title = "Auto Sell",
@@ -183,9 +234,13 @@ end)
 task.spawn(function()
     while true do
         if autoTweenEnabled then
-            tweenTo(Vector3.new(242, 70, 56), 10)
+            local firstPos = Vector3.new(242, 70, 56)
+            local secondPos = Vector3.new(141, 70, 277)
             
-            for _ = 1, 100 do 
+            -- First position
+            safeTweenTo(firstPos, 10)
+            
+            for _ = 1, 2 do 
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("ProximityPrompt") and v.Parent:IsA("BasePart") then
                         local dist = (humanoidRootPart.Position - v.Parent.Position).Magnitude
@@ -204,10 +259,34 @@ task.spawn(function()
                 end
             end
             
-            tweenTo(Vector3.new(141, 70, 277), 10)
+            -- Second position
+            safeTweenTo(secondPos, 10)
             
-            tweenTo(Vector3.new(242, 70, 56), 10)
-            for _ = 1, 100 do
+            for _ = 1, 4 do
+                if not autoTweenEnabled then break end
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("ProximityPrompt") and v.Parent:IsA("BasePart") then
+                        local dist = (humanoidRootPart.Position - v.Parent.Position).Magnitude
+                        if dist < 10 then
+                            pcall(function()
+                                v.HoldDuration = 0
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                            end)
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+            
+            -- Back to first position
+            safeTweenTo(firstPos, 10)
+            
+            for _ = 1, 400 do
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("ProximityPrompt") and v.Parent:IsA("BasePart") then
                         local dist = (humanoidRootPart.Position - v.Parent.Position).Magnitude
@@ -227,6 +306,18 @@ task.spawn(function()
             end
             
             task.wait(57)
+            
+            -- Clean up platform when waiting
+            if tweenPlatform then
+                tweenPlatform:Destroy()
+                tweenPlatform = nil
+            end
+        else
+            -- Clean up platform when disabled
+            if tweenPlatform then
+                tweenPlatform:Destroy()
+                tweenPlatform = nil
+            end
         end
         task.wait(0.1)
     end
@@ -722,24 +813,85 @@ MiscSection:addButton({
 MiscSection2:addButton({
     title = "Close UI",
     callback = function()
+        if tweenPlatform then
+            tweenPlatform:Destroy()
+            tweenPlatform = nil
+        end
+
+        -- Stop all running processes
         rainbowRunning = false
+        autoFarmEnabled = false
+        antiAFKEnabled = false
+        noclipEnabled = false
+        
+        -- Cleanup connections
         if rainbowConnection then
             rainbowConnection:Disconnect()
             rainbowConnection = nil
         end
         
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
+        
+        if autoHealConnection then
+            autoHealConnection:Disconnect()
+            autoHealConnection = nil
+        end
+        
+        if _G.walkSpeedConnection then
+            _G.walkSpeedConnection:Disconnect()
+            _G.walkSpeedConnection = nil
+        end
+        
+        -- Reset character states
+        local player = game.Players.LocalPlayer
+        if player.Character then
+            -- Reset walkspeed
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = 16
+            end
+            
+            -- Reset collision
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+        
+        -- Clear global variables
+        _G.savedWalkSpeed = nil
+        
+        -- Clear all notifications
+        for _, v in pairs(CoreGui:GetChildren()) do
+            if v:IsA("ScreenGui") then
+                -- Clear Venyx notifications
+                for _, notification in pairs(v:GetChildren()) do
+                    if notification.Name == "Notification" or notification:FindFirstChild("Title") then
+                        notification:Destroy()
+                    end
+                end
+            end
+        end
+        
         uiDestroyed = true
         
+        -- Destroy UI and cleanup
         task.spawn(function()
             UI:toggle()
             task.wait(0.5)
             
             for _, v in pairs(CoreGui:GetChildren()) do
-                if v:IsA("ScreenGui") and v.Name:lower():find("venyx") then
+                if v:IsA("ScreenGui") and (v.Name:lower():find("venyx") or v.Name:lower():find("elystra")) then
                     v:Destroy()
                 end
             end
             
+            -- Break the script execution
+            error("Script terminated by user")
         end)
     end
 })
