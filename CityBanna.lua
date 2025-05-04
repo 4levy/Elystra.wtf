@@ -27,17 +27,18 @@ local function tweenTo(pos, speed)
     
     local startPos = humanoidRootPart.Position
     local distance = (startPos - pos).Magnitude
-    local time = distance / speed
+    local time = distance / (speed * 3) 
     
-    local midPoint = startPos + (pos - startPos) * 0.5 + Vector3.new(0, math.min(distance * 0.2, 20), 0)
+    local heightOffset = math.min(distance * 0.15, 15)
+    local midPoint = startPos + (pos - startPos) * 0.5 + Vector3.new(0, heightOffset, 0)
     
     local info = TweenInfo.new(
-        time,
-        Enum.EasingStyle.Sine,
-        Enum.EasingDirection.InOut, 
-        0, 
+        time * 0.5, 
+        Enum.EasingStyle.Linear, 
+        Enum.EasingDirection.Out,
+        0,
         false,
-        0 
+        0
     )
     
     local waypoints = {
