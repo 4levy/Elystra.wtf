@@ -708,28 +708,47 @@ local function createPlayerDropdown()
     end
 end
 
+-- Add global function to refresh all dropdowns
+local function refreshAllDropdowns()
+    pcall(function()
+        if dropdown then
+            dropdown:Remove()
+            dropdown = nil
+        end
+        if tradeDropdown then
+            tradeDropdown:Remove()
+            tradeDropdown = nil
+        end
+        
+        -- Recreate both dropdowns
+        createPlayerDropdown()
+        createTradeDropdown()
+        
+        UI:Notify({
+            title = "Refresh",
+            text = "All player lists have been refreshed!"
+        })
+    end)
+end
+
 SectionB:addButton({
     title = "Refresh Player List",
-    callback = function()
-        pcall(function()
-            createPlayerDropdown()
-        end)
-    end
+    callback = refreshAllDropdowns
 })
 
 createPlayerDropdown()
 
 Players.PlayerAdded:Connect(function(player)
-    task.wait(0.1) -- Small delay to ensure character loads
-    createPlayerDropdown()
+    task.wait(0.1) 
+    refreshAllDropdowns()
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-    task.wait(0.1) -- Small delay to ensure player is fully removed
+    task.wait(0.1) 
     if player.Name == selectedPlayerName then
         selectedPlayerName = nil
     end
-    createPlayerDropdown()
+    refreshAllDropdowns()
 end)
 
 SectionB:addButton({
@@ -1220,11 +1239,7 @@ end
 
 TradeSection:addButton({
     title = "Refresh List",
-    callback = function()
-        pcall(function()
-            createTradeDropdown()
-        end)
-    end
+    callback = refreshAllDropdowns
 })
 
 TradeSection:addButton({
@@ -1260,7 +1275,7 @@ createTradeDropdown()
 
 Players.PlayerAdded:Connect(function()
     task.wait(0.1)
-    createTradeDropdown()
+    refreshAllDropdowns()
 end)
 
 Players.PlayerRemoving:Connect(function(player)
@@ -1268,7 +1283,7 @@ Players.PlayerRemoving:Connect(function(player)
     if player.Name == selectedTradePlayer then
         selectedTradePlayer = nil
     end
-    createTradeDropdown()
+    refreshAllDropdowns()
 end)
 
 -- // Theme Page
