@@ -27,7 +27,7 @@ local function tweenTo(pos, speed)
     
     local startPos = humanoidRootPart.Position
     local distance = (startPos - pos).Magnitude
-    local time = distance / (speed * 3) 
+    local time = distance / (speed * 4) 
     
     local heightOffset = math.min(distance * 0.15, 15)
     local midPoint = startPos + (pos - startPos) * 0.5 + Vector3.new(0, heightOffset, 0)
@@ -709,9 +709,11 @@ local function createPlayerDropdown()
     end
 end
 
--- Add global function to refresh all dropdowns
 local function refreshAllDropdowns()
     pcall(function()
+        local prevSelectedPlayer = selectedPlayerName
+        local prevTradePlayer = selectedTradePlayer
+        
         if dropdown then
             dropdown:Remove()
             dropdown = nil
@@ -721,13 +723,42 @@ local function refreshAllDropdowns()
             tradeDropdown = nil
         end
         
-        -- Recreate both dropdowns
-        createPlayerDropdown()
-        createTradeDropdown()
+        selectedPlayerName = nil
+        selectedTradePlayer = nil
+        
+        local playerList = getPlayerNames() 
+        
+        if #playerList > 0 then
+            dropdown = SectionB:addDropdown({
+                title = "Select Player",
+                list = playerList,
+                default = prevSelectedPlayer,
+                callback = function(name)
+                    selectedPlayerName = name
+                    UI:Notify({
+                        title = "Player Selected",
+                        text = "Selected: " .. name
+                    })
+                end
+            })
+            
+            tradeDropdown = TradeSection:addDropdown({
+                title = "Select Player",
+                list = playerList,
+                default = prevTradePlayer,
+                callback = function(name)
+                    selectedTradePlayer = name
+                    UI:Notify({
+                        title = "Trade Player Selected",
+                        text = "Selected: " .. name
+                    })
+                end
+            })
+        end
         
         UI:Notify({
-            title = "Refresh",
-            text = "All player lists have been refreshed!"
+            title = "Refresh Complete",
+            text = "Player lists have been updated"
         })
     end)
 end
