@@ -635,7 +635,6 @@ local function spectatePlayer(playerName)
 end
 
 local function createPlayerDropdown()
-    -- Remove old dropdown if it exists
     if currentDropdown then
         pcall(function()
             currentDropdown:Remove()
@@ -643,19 +642,16 @@ local function createPlayerDropdown()
         end)
     end
 
-    -- Create new dropdown with current player list
     local playerList = getPlayerNames()
     if #playerList > 0 then
         currentDropdown = SectionB:addDropdown({
-            title = "Select Player to Spectate",
+            title = "Select Player",
             list = playerList,
             callback = function(name)
                 selectedPlayerName = name
-                print("Selected player:", name)
-                -- Don't recreate dropdown here to avoid recursion
                 UI:Notify({
                     title = "Player Selected",
-                    text = "Selected player: " .. name
+                    text = "Selected: " .. name
                 })
             end
         })
@@ -667,32 +663,28 @@ local function createPlayerDropdown()
     end
 end
 
--- Add refresh button with error handling
+-- Add refresh button
 SectionB:addButton({
-    title = "Refresh Player List",
+    title = "Refresh List",
     callback = function()
         pcall(function()
             createPlayerDropdown()
-            UI:Notify({
-                title = "Player List",
-                text = "Player list has been refreshed!"
-            })
         end)
     end
 })
 
--- Initial creation with error handling
-pcall(createPlayerDropdown)
+-- Initial creation
+createPlayerDropdown()
 
--- Set up player connections
+-- Update on player changes
 Players.PlayerAdded:Connect(function()
-    task.wait(1) -- Give time for character to load
-    pcall(createPlayerDropdown)
+    wait(0.5)
+    createPlayerDropdown()
 end)
 
 Players.PlayerRemoving:Connect(function()
-    task.wait(1) -- Give time for player to fully remove
-    pcall(createPlayerDropdown)
+    wait(0.5)
+    createPlayerDropdown()
 end)
 
 SectionB:addButton({
