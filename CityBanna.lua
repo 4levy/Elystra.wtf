@@ -7,7 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 
 local UI = Venyx.new({
-    title = "Elystra.wtf | Beta"
+    title = "Elystra.wtf | Beta | V0.0.1"
     
 })
 
@@ -27,7 +27,7 @@ local function tweenTo(pos, speed)
     
     local startPos = humanoidRootPart.Position
     local distance = (startPos - pos).Magnitude
-    local time = distance / (speed * 4) 
+    local time = distance / (speed * 6) 
     
     local heightOffset = math.min(distance * 0.15, 15)
     local midPoint = startPos + (pos - startPos) * 0.5 + Vector3.new(0, heightOffset, 0)
@@ -66,7 +66,6 @@ local Themes = {
     TextColor = Color3.fromRGB(255, 255, 255)
 }
 
--- // Notify user with welcome message
 UI:Notify({
     title = "Loaded!",
     text = "Use at ur own risk",
@@ -240,7 +239,7 @@ task.spawn(function()
                 end
             end
             
-            safeTweenTo(secondPos, 10)
+            safeTweenTo(secondPos, 15)
             
             for _ = 1, 4 do
                 if not autoTweenEnabled then break end
@@ -263,7 +262,7 @@ task.spawn(function()
                 task.wait(0.1)
             end
 
-            safeTweenTo(firstPos, 10)
+            safeTweenTo(firstPos, 15)
             
             for _ = 1, 400 do
                 for _, v in pairs(workspace:GetDescendants()) do
