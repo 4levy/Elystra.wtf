@@ -8,8 +8,28 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 local UI = Venyx.new({
     title = "Elystra.wtf | Beta"
+    
 })
 
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = char:WaitForChild("HumanoidRootPart")
+
+player.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    humanoidRootPart = char:WaitForChild("HumanoidRootPart")
+end)
+
+local function tweenTo(pos, speed)
+    if not humanoidRootPart then return end
+    local distance = (humanoidRootPart.Position - pos).Magnitude
+    local time = distance / speed
+    local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
+    tween:Play()
+    tween.Completed:Wait()
+end
 
 -- // Themes config 
 local Themes = {
@@ -29,52 +49,190 @@ UI:Notify({
 
 -- // Auto Farm Page
 local AutoFarm = UI:addPage({ title = "Auto Farm", icon = 5012544693 })
-local SectionA = AutoFarm:addSection({ title = "Section A" })
-local SectionB = AutoFarm:addSection({ title = "Section B" })
+local SectionA = AutoFarm:addSection({ title = "Auto Farm Gold" })
+
+local autoPromptEnabled = false
+local autoSellEnabled = false
+local alwaysEnablePrompt = false
+local autoTweenEnabled = false
 
 SectionA:addToggle({
-    title = "Gold Farm",
-    callback = function(value) print("Toggled", value) end
-})
-
-SectionA:addButton({
-    title = "Button",
-    callback = function() print("Clicked") end
-})
-
--- // Custom Platform Function
-local platformEnabled = true
-local platform = nil
-local platformHeight = 100 
-local function togglePlatform()
-    if platformEnabled then
-        -- Remove platform
-        if platform then
-            platform:Destroy()
-            platform = nil
+    title = "Auto Prompt ทอง",
+    callback = function(value)
+        autoPromptEnabled = value
+        
+        if value then
+            UI:Notify({
+                title = "Auto Prompt",
+                text = "Started"
+            })
+        else
+            UI:Notify({
+                title = "Auto Prompt",
+                text = "Stopped"
+            })
         end
-        platformEnabled = false
-        return false
-    else
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local hrp = character:WaitForChild("HumanoidRootPart")
-        platform = Instance.new("Part")
-        platform.Name = "CustomPlatform"
-        platform.Size = Vector3.new(10, 1, 10)  
-        platform.Anchored = true
-        platform.CanCollide = true
-        platform.Material = Enum.Material.SmoothPlastic
-        platform.BrickColor = BrickColor.new("Really blue")
-        platform.Transparency = 0.5
-        local currentPos = hrp.Position
-        platform.Position = Vector3.new(currentPos.X, platformHeight, currentPos.Z)
-        platform.Parent = workspace
-        hrp.CFrame = CFrame.new(Vector3.new(currentPos.X, platformHeight + 3, currentPos.Z))
-        platformEnabled = true
-        return true
     end
-end
+})
+
+SectionA:addToggle({
+    title = "Auto Sell ทอง",
+    callback = function(value)
+        autoSellEnabled = value
+        
+        if value then
+            UI:Notify({
+                title = "Auto Sell",
+                text = "Started"
+            })
+        else
+            UI:Notify({
+                title = "Auto Sell",
+                text = "Stopped"
+            })
+        end
+    end
+})
+
+SectionA:addToggle({
+    title = "Enable Prompt เมื่อร้านปิด",
+    callback = function(value)
+        alwaysEnablePrompt = value
+        
+        if value then
+            UI:Notify({
+                title = "Always Enable",
+                text = "Started"
+            })
+        else
+            UI:Notify({
+                title = "Always Enable",
+                text = "Stopped"
+            })
+        end
+    end
+})
+
+SectionA:addToggle({
+    title = "Auto Tween",
+    callback = function(value)
+        autoTweenEnabled = value
+        
+        if value then
+            UI:Notify({
+                title = "Auto Tween",
+                text = "Started"
+            })
+        else
+            UI:Notify({
+                title = "Auto Tween",
+                text = "Stopped"
+            })
+        end
+    end
+})
+
+task.spawn(function()
+    while true do
+        if autoPromptEnabled then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") and v.Parent:IsA("BasePart") then
+                    local dist = (humanoidRootPart.Position - v.Parent.Position).Magnitude
+                    if dist < 10 then
+                        pcall(function()
+                            v.HoldDuration = 0
+                            v:InputHoldBegin()
+                            task.wait(0.5)
+                            v:InputHoldEnd()
+                        end)
+                    end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if autoSellEnabled then
+            pcall(function()
+                local args = { [1] = "Sell", [2] = "Gold" }
+                ReplicatedStorage:WaitForChild("GLOBAL_VALUES"):WaitForChild("ConfigrationFolder"):WaitForChild("GlobalEvent"):FireServer(unpack(args))
+            end)
+        end
+        task.wait(0.2)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if alwaysEnablePrompt then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then
+                    pcall(function()
+                        v.Enabled = true
+                    end)
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if autoTweenEnabled then
+            tweenTo(Vector3.new(242, 70, 56), 10)
+            
+            for _ = 1, 100 do 
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("ProximityPrompt") and v.Parent:IsA("BasePart") then
+                        local dist = (humanoidRootPart.Position - v.Parent.Position).Magnitude
+                        if dist < 10 then
+                            pcall(function()
+                                v.HoldDuration = 0
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                            end)
+                        end
+                    end
+                end
+            end
+            
+            tweenTo(Vector3.new(141, 70, 277), 10)
+            
+            tweenTo(Vector3.new(242, 70, 56), 10)
+            for _ = 1, 100 do
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("ProximityPrompt") and v.Parent:IsA("BasePart") then
+                        local dist = (humanoidRootPart.Position - v.Parent.Position).Magnitude
+                        if dist < 10 then
+                            pcall(function()
+                                v.HoldDuration = 0
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                                v:InputHoldBegin()
+                                v:InputHoldEnd()
+                            end)
+                        end
+                    end
+                end
+            end
+            
+            task.wait(57)
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- // ENd 
 
 local Aroundmap = UI:addPage({ title = "Teleport", icon = 5012544693 })
 local SectionA = Aroundmap:addSection({ title = "Teleport" })
@@ -120,10 +278,8 @@ SectionA:addButton({
 })
 
 
--- Add Platform Section
 local PlatformSection = Aroundmap:addSection({ title = "Platform" })
 
--- Toggle for platform
 PlatformSection:addToggle({
     title = "Custom Platform",
     callback = function(value)
@@ -143,7 +299,6 @@ PlatformSection:addToggle({
     end
 })
 
--- Platform height slider
 PlatformSection:addSlider({
     title = "Platform Height",
     default = 100,
@@ -152,11 +307,9 @@ PlatformSection:addSlider({
     callback = function(value)
         platformHeight = value
         if platform and platformEnabled then
-            -- Update existing platform height
             local currentPos = platform.Position
             platform.Position = Vector3.new(currentPos.X, value, currentPos.Z)
             
-            -- Move player to updated platform if they want
             local player = game.Players.LocalPlayer
             local character = player.Character
             if character then
@@ -169,10 +322,9 @@ PlatformSection:addSlider({
     end
 })
 
--- Platform color picker
 PlatformSection:addColorPicker({
     title = "Platform Color",
-    default = Color3.fromRGB(0, 0, 255), -- Default blue
+    default = Color3.fromRGB(0, 0, 255),
     callback = function(color)
         if platform then
             platform.Color = color
@@ -180,7 +332,6 @@ PlatformSection:addColorPicker({
     end
 })
 
--- Platform transparency slider
 PlatformSection:addSlider({
     title = "Platform Transparency",
     default = 0.5,
@@ -193,7 +344,6 @@ PlatformSection:addSlider({
     end
 })
 
--- Platform size slider
 PlatformSection:addSlider({
     title = "Platform Size",
     default = 10,
@@ -245,12 +395,10 @@ local function performHealCycle(originalCFrame, hospitalCFrame, breakSpotCFrame)
     local hrp = getHRP()
     if not humanoid or not hrp then return end
 
-    -- Step 1: Go to hospital
     teleportTo(hospitalCFrame)
     humanoid.PlatformStand = true
     UI:Notify({ title = "Auto Heal", text = "Teleporting to hospital..." })
 
-    -- Step 2: Nudge while healing
     local nudgeUp = true
     while humanoid.Health < humanoid.MaxHealth do
         local pos = hrp.Position
@@ -261,12 +409,10 @@ local function performHealCycle(originalCFrame, hospitalCFrame, breakSpotCFrame)
     end
     UI:Notify({ title = "Auto Heal", text = "Healed!" })
 
-    -- Step 3: Go to break spot
     teleportTo(breakSpotCFrame)
     task.wait(2.5)
     UI:Notify({ title = "Auto Heal", text = "Break spot reached." })
 
-    -- Step 4: Heal again if needed
     while humanoid.Health < humanoid.MaxHealth do
         local pos = hrp.Position
         local offset = nudgeUp and Vector3.new(0, 0.1, 0) or Vector3.new(0, -0.1, 0)
@@ -276,7 +422,6 @@ local function performHealCycle(originalCFrame, hospitalCFrame, breakSpotCFrame)
     end
     UI:Notify({ title = "Auto Heal", text = "Final heal complete!" })
 
-    -- Step 5: Return to original position if enabled
     humanoid.PlatformStand = false
     if autoHealSafeReturn then
         teleportTo(originalCFrame)
@@ -290,13 +435,13 @@ local function startAutoHealLoop()
         if not autoHealEnabled then return end
         local humanoid = getHumanoid()
         if humanoid and humanoid.Health < autoHealMinHealth then
-            autoHealEnabled = false -- Prevent re-entry
+            autoHealEnabled = false 
             local hrp = getHRP()
             local originalCFrame = hrp.CFrame
             local hospitalCFrame = CFrame.new(186.795425, 127.700378, 45739.597656)
             local breakSpotCFrame = CFrame.new(160, 127.7, 45720)
             performHealCycle(originalCFrame, hospitalCFrame, breakSpotCFrame)
-            autoHealEnabled = true -- Re-enable after healing
+            autoHealEnabled = true
         end
     end)
 end
@@ -328,22 +473,20 @@ SectionA:addButton({
 
         local function preloadChunk(position, radius)
             local region = Region3.new(position - Vector3.new(radius, radius, radius), position + Vector3.new(radius, radius, radius))
-            region = region:ExpandToGrid(4) -- aligns to 4x4x4 voxels
+            region = region:ExpandToGrid(4) 
             local parts = Workspace:FindPartsInRegion3(region, nil, math.huge)
             return #parts > 0
         end
 
         local function healCycle()
-            -- Step 0: Preload hospital area
             UI:Notify({ title = "Auto Heal", text = "Loading hospital area..." })
-            teleportTo(hospitalCFrame) -- Temporarily teleport to trigger streaming
+            teleportTo(hospitalCFrame) 
             repeat
                 task.wait(0.5)
             until preloadChunk(hospitalCFrame.Position, 32)
 
-            task.wait(0.5) -- Give a little buffer
+            task.wait(0.5)
 
-            -- Step 1: Begin healing cycle
             repeat
                 teleportTo(hospitalCFrame)
                 humanoid.PlatformStand = true
@@ -372,7 +515,7 @@ SectionA:addButton({
 
 SectionB:addSlider({
     title = "Walk Speed",
-    default = 16, -- Default Roblox walk speed
+    default = 16, 
     min = 0,
     max = 1000,
     callback = function(value)
@@ -381,10 +524,8 @@ SectionB:addSlider({
             player.Character.Humanoid.WalkSpeed = value
         end
         
-        -- Store the value for when character respawns
         _G.savedWalkSpeed = value
-        
-        -- Add character added connection if it doesn't exist
+
         if not _G.walkSpeedConnection then
             _G.walkSpeedConnection = player.CharacterAdded:Connect(function(char)
                 local humanoid = char:WaitForChild("Humanoid")
@@ -411,27 +552,23 @@ Colors:addToggle({
         rainbowRunning = state
         
         if rainbowRunning then
-            -- Disconnect any existing connection
             if rainbowConnection then
                 rainbowConnection:Disconnect()
             end
             
-            -- Create a new rainbow effect
             rainbowConnection = RunService.RenderStepped:Connect(function()
-                local hue = tick() % 10 / 10  -- Adjust the speed of the rainbow effect
-                local color = Color3.fromHSV(hue, 1, 1) -- Generate a color from HSV
+                local hue = tick() % 10 / 10  
+                local color = Color3.fromHSV(hue, 1, 1) 
 
-                -- Apply the color to the themes dynamically
+
                 UI:setTheme({ theme = "TextColor", color3 = color })
                 UI:setTheme({ theme = "Glow", color3 = color })
             end)
         else
-            -- Stop the rainbow effect if the toggle is off
             if rainbowConnection then
                 rainbowConnection:Disconnect()
                 rainbowConnection = nil
-                
-                -- Reset to default themes
+
                 UI:setTheme({ theme = "Glow", color3 = Themes.Glow })
                 UI:setTheme({ theme = "TextColor", color3 = Themes.TextColor })
             end
@@ -476,6 +613,87 @@ MiscSection:addToggle({
 
 local uiDestroyed = false
 
+-- // NoClip
+
+local noclipConnection
+local noclipEnabled = false
+
+
+MiscSection:addToggle({
+    title = "Noclip",
+    callback = function(value)
+        noclipEnabled = value
+
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
+
+        if noclipEnabled then
+            noclipConnection = RunService.Stepped:Connect(function()
+                local character = Players.LocalPlayer.Character
+                if character then
+                    for _, part in pairs(character:GetDescendants()) do
+                        if part:IsA("BasePart") and part.CanCollide then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            local character = Players.LocalPlayer.Character
+            if character then
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") and not part.CanCollide then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+})
+
+MiscSection:addButton({
+    title = "Fix Cam",
+    callback = function()
+        local speaker = game.Players.LocalPlayer
+        
+        if StopFreecam then
+            StopFreecam()
+        end
+        
+
+        if execCmd then
+            execCmd('unview')
+        end
+        
+        if workspace.CurrentCamera then
+            workspace.CurrentCamera:Remove()
+        end
+        
+        task.wait(0.1)
+        
+        repeat task.wait() until speaker.Character
+
+        if workspace.CurrentCamera then
+            local humanoid = speaker.Character:FindFirstChildWhichIsA('Humanoid')
+            if humanoid then
+                workspace.CurrentCamera.CameraSubject = humanoid
+            end
+            workspace.CurrentCamera.CameraType = "Custom"
+        end
+        
+        speaker.CameraMinZoomDistance = 0.5
+        speaker.CameraMaxZoomDistance = 400
+        speaker.CameraMode = "Classic"
+        
+        if speaker.Character and speaker.Character:FindFirstChild("Head") then
+            speaker.Character.Head.Anchored = false
+        end
+    end
+})
+
+
 MiscSection:addButton({
     title = "Click Teleport Tool",
     callback = function()
@@ -499,50 +717,6 @@ MiscSection:addButton({
     end
 })
 
-MiscSection:addButton({
-    title = "Fix Cam",
-    callback = function()
-        local speaker = game.Players.LocalPlayer
-        
-        if StopFreecam then
-            StopFreecam()
-        end
-        
-        -- Unview command (assuming execCmd is defined elsewhere)
-        if execCmd then
-            execCmd('unview')
-        end
-        
-        -- Remove and recreate camera
-        if workspace.CurrentCamera then
-            workspace.CurrentCamera:Remove()
-        end
-        
-        task.wait(0.1)
-        
-        -- Wait for character to load if not already loaded
-        repeat task.wait() until speaker.Character
-
-        -- Set camera properties
-        if workspace.CurrentCamera then
-            local humanoid = speaker.Character:FindFirstChildWhichIsA('Humanoid')
-            if humanoid then
-                workspace.CurrentCamera.CameraSubject = humanoid
-            end
-            workspace.CurrentCamera.CameraType = "Custom"
-        end
-        
-        -- Set player camera properties
-        speaker.CameraMinZoomDistance = 0.5
-        speaker.CameraMaxZoomDistance = 400
-        speaker.CameraMode = "Classic"
-        
-        -- Unanchor head if it exists
-        if speaker.Character and speaker.Character:FindFirstChild("Head") then
-            speaker.Character.Head.Anchored = false
-        end
-    end
-})
 
 -- // Proper UI Close Button
 MiscSection2:addButton({
@@ -557,9 +731,8 @@ MiscSection2:addButton({
         uiDestroyed = true
         
         task.spawn(function()
-            -- First toggle off for visual effect
             UI:toggle()
-            task.wait(0.5) -- Give a small delay before destroying
+            task.wait(0.5)
             
             for _, v in pairs(CoreGui:GetChildren()) do
                 if v:IsA("ScreenGui") and v.Name:lower():find("venyx") then
