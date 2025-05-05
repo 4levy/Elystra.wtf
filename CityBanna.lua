@@ -938,80 +938,67 @@ local function teleportToPlayer(playerName)
     end
 end
 
+local function validatePlayer(name)
+    if not name then return false end
+    local player = Players:FindFirstChild(name)
+    return player ~= nil and player ~= LocalPlayer
+end
+
 local function updatePlayerLists()
     pcall(function()
         local prevSelectedPlayer = selectedPlayerName
         local prevTradePlayer = selectedTradePlayer
-        
         local playerList = safeGetPlayerNames()
-        
-        if dropdown and typeof(dropdown) == "table" and dropdown.Remove then
+
+        if dropdown then 
             dropdown:Remove()
             dropdown = nil
+            SectionB:UpdateDropdown({}) 
         end
-        if tradeDropdown and typeof(tradeDropdown) == "table" and tradeDropdown.Remove then
+        
+        if tradeDropdown then
             tradeDropdown:Remove()
             tradeDropdown = nil
+            TradeSection:UpdateDropdown({}) 
         end
-        
-        local function validatePlayer(name)
-            if not name then return false end
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr and plr.Name == name then
-                    return true
-                end
-            end
-            return false
-        end
-        
-        if not validatePlayer(prevSelectedPlayer) then
-            prevSelectedPlayer = nil
-        end
-        if not validatePlayer(prevTradePlayer) then
-            prevTradePlayer = nil
-        end
-        
+
+        task.wait(0.1) 
+
         if #playerList > 0 then
-            pcall(function()
-                if SectionB then
-                    dropdown = SectionB:addDropdown({
-                        title = "Select Player",
-                        list = playerList,
-                        default = prevSelectedPlayer,
-                        callback = function(name)
-                            if name and Players:FindFirstChild(name) then
-                                selectedPlayerName = name
-                                UI:Notify({
-                                    title = "Player Selected",
-                                    text = "Selected: " .. name
-                                })
-                            end
+            if SectionB and not dropdown then
+                dropdown = SectionB:addDropdown({
+                    title = "Select Player",
+                    list = playerList,
+                    default = validatePlayer(prevSelectedPlayer) and prevSelectedPlayer or nil,
+                    callback = function(name)
+                        if name and Players:FindFirstChild(name) then
+                            selectedPlayerName = name
+                            UI:Notify({
+                                title = "Player Selected",
+                                text = "Selected: " .. name
+                            })
                         end
-                    })
-                end
-                
-                if TradeSection then
-                    tradeDropdown = TradeSection:addDropdown({
-                        title = "Select Player",
-                        list = playerList,
-                        default = prevTradePlayer,
-                        callback = function(name)
-                            if name and Players:FindFirstChild(name) then
-                                selectedTradePlayer = name
-                                UI:Notify({
-                                    title = "Trade Player Selected", 
-                                    text = "Selected: " .. name .. " (" .. #playerList .. " players)"
-                                })
-                            end
+                    end
+                })
+            end
+            
+            if TradeSection and not tradeDropdown then
+                tradeDropdown = TradeSection:addDropdown({
+                    title = "Select Player",
+                    list = playerList,
+                    default = validatePlayer(prevTradePlayer) and prevTradePlayer or nil,
+                    callback = function(name)
+                        if name and Players:FindFirstChild(name) then
+                            selectedTradePlayer = name
+                            UI:Notify({
+                                title = "Trade Player Selected",
+                                text = string.format("Selected: %s (%d players)", name, #playerList)
+                            })
                         end
-                    })
-                end
-            end)
+                    end
+                })
+            end
         end
-        
-        selectedPlayerName = prevSelectedPlayer
-        selectedTradePlayer = prevTradePlayer
-        
     end)
 end
 
@@ -1210,7 +1197,8 @@ SectionB:addSlider({
 -- // Misc Page
 local Misc = UI:addPage({ title = "Misc", icon = 5012544693 })
 local MiscSection = Misc:addSection({ title = "Utility" })
-local MiscSection2 = Misc:addSection({ title = "Ui" })
+local MiscSection2 = Misc:addSection({ title = "Vehicle" })
+local MiscSection3 = Misc:addSection({ title = "Ui" })
 
 local antiAFKEnabled = true
 
@@ -1236,7 +1224,6 @@ local uiDestroyed = false
 
 local noclipConnection
 local noclipEnabled = false
-
 
 MiscSection:addToggle({
     title = "Noclip",
@@ -1296,6 +1283,26 @@ MiscSection:addButton({
         })
     end
 })
+
+MiscSection2:addSlider({
+    title = "Vehicle Speed",
+    default = 1,
+    min = 1,
+    max = 100,
+    callback = function(value)
+        local args = {
+            {
+                {
+                    "\009",
+                    "Speed",
+                    value
+                }
+            }
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+    end
+})
+
 
 MiscSection:addButton({
     title = "Fix Cam",
@@ -1407,7 +1414,7 @@ MiscSection:addButton({
 })
 
 -- // Proper UI Close Button
-MiscSection2:addButton({
+MiscSection3:addButton({
     title = "Close UI",
     callback = function()
         if tweenPlatform then
@@ -1494,24 +1501,20 @@ local selectedTradePlayer = nil
 local tradeDropdown
 
 local function createTradeDropdown()
-    -- Clean up existing dropdown
     if tradeDropdown then
         pcall(function()
             tradeDropdown:Remove()
             tradeDropdown = nil
         end)
-        task.wait(0.1) -- Small delay to ensure cleanup
+        task.wait(0.1) 
     end
     
-    -- Get updated player list
     local playerList = safeGetPlayerNames()
     
-    -- Clear invalid selection
     if selectedTradePlayer and not table.find(playerList, selectedTradePlayer) then
         selectedTradePlayer = nil
     end
-    
-    -- Create new dropdown only if no existing one
+
     if #playerList > 0 and not tradeDropdown then
         tradeDropdown = TradeSection:addDropdown({
             title = "Select Player",
