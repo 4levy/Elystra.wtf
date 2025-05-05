@@ -262,8 +262,129 @@ SectionA:addToggle({
     end
 })
 
+local autoTrashConnection
+
+SectionA:addToggle({
+    title = "Auto Collect Trash",
+    callback = function(enabled)
+        if enabled then
+            local Players = game:GetService("Players")
+            local player = Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+            autoTrashConnection = true 
+
+            local function sellTrash()
+                humanoidRootPart.CFrame = CFrame.new(Vector3.new(51.839500, 69.451118, 6.100793))
+                task.wait(0.5)
+                local args = { [1] = "Sell", [2] = "Trash" }
+                game:GetService("ReplicatedStorage"):WaitForChild("GLOBAL_VALUES"):WaitForChild("ConfigrationFolder"):WaitForChild("GlobalEvent"):FireServer(unpack(args))
+            end
+
+            local function teleportAndHoldPrompt(prompt)
+                if prompt and prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                    local part = prompt.Parent
+                    if part and part:IsA("BasePart") then
+                        humanoidRootPart.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+                        task.wait(0.25)
+                        pcall(function()
+                            prompt:InputHoldBegin()
+                            task.wait(8)
+                            prompt:InputHoldEnd()
+                        end)
+                        task.wait(0.3)
+                        return true
+                    end
+                end
+                return false
+            end
+
+            task.spawn(function()
+                while autoTrashConnection do
+                    local foundTrash = false
+                    
+                    local prompts = workspace:FindFirstChild("SpawnTrashFolder")
+                    if prompts then
+                        local spawns = prompts:FindFirstChild("Spawns")
+                        if spawns then
+                            for _, prompt in ipairs(spawns:GetDescendants()) do
+                                if not autoTrashConnection then break end
+                                if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                                    foundTrash = teleportAndHoldPrompt(prompt)
+                                    if foundTrash then break end
+                                end
+                            end
+                        end
+                    end
+                    
+                    if not foundTrash then
+                        local garbageFolder = workspace:FindFirstChild("Others")
+                        if garbageFolder and garbageFolder:FindFirstChild("Garbage") then
+                            for _, prompt in ipairs(garbageFolder.Garbage:GetDescendants()) do
+                                if not autoTrashConnection then break end
+                                if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                                    foundTrash = teleportAndHoldPrompt(prompt)
+                                    if foundTrash then break end
+                                end
+                            end
+                        end
+                    end
+
+                    if not foundTrash then
+                        sellTrash()
+                        task.wait(1)
+                    end
+
+                    task.wait(0.5)
+                end
+            end)
+
+        else
+            autoTrashConnection = false
+        end
+    end
+})
+
+SectionA:addToggle({
+    title = "Auto ClaimGift",
+    default = true, 
+    callback = function(value)
+        _G.autoClaimGift = value
+        
+        if value then
+            for i = 1, 10 do
+                local args = {i}
+                game:GetService("ReplicatedStorage"):WaitForChild("GiftFolder"):WaitForChild("ClaimGift"):InvokeServer(unpack(args))
+            end
+            
+            if not _G.claimGiftLoop then
+                _G.claimGiftLoop = task.spawn(function()
+                    while _G.autoClaimGift do
+                        for i = 1, 10 do
+                            local args = {i}
+                            game:GetService("ReplicatedStorage"):WaitForChild("GiftFolder"):WaitForChild("ClaimGift"):InvokeServer(unpack(args))
+                        end
+                        task.wait(300) 
+                    end
+                end)
+            end
+        else
+            if _G.claimGiftLoop then
+                task.cancel(_G.claimGiftLoop)
+                _G.claimGiftLoop = nil
+            end
+        end
+    end
+})
+
+task.spawn(function()
+    _G.autoClaimGift = true
+    SectionA:GetToggle("Auto ClaimGift"):Set(true)
+end)
+
 SectionB:addToggle({
-    title = "Auto Sell ทอง",
+    title = "Auto Sell Gold",
     callback = function(value)
         autoSellEnabled = value
         
