@@ -11,6 +11,32 @@ local UI = Venyx.new({
     
 })
 
+local currentNotification = nil
+
+local oldNotify = UI.Notify
+UI.Notify = function(self, options)
+    if currentNotification then
+        pcall(function()
+            currentNotification:Destroy()
+            currentNotification = nil
+        end)
+    end
+    
+    currentNotification = oldNotify(self, options)
+
+    task.spawn(function()
+        task.wait(3)
+        if currentNotification then
+            pcall(function()
+                currentNotification:Destroy()
+                currentNotification = nil 
+            end)
+        end
+    end)
+    
+    return currentNotification
+end
+
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
@@ -95,7 +121,6 @@ local function createMobileButton()
     CloseButton.Active = true
     CloseButton.Draggable = true
     
-    -- Make buttons rounded
     local corner1 = Instance.new("UICorner")
     corner1.CornerRadius = UDim.new(0, 8)
     corner1.Parent = OpenButton
@@ -104,7 +129,6 @@ local function createMobileButton()
     corner2.CornerRadius = UDim.new(0, 8)
     corner2.Parent = CloseButton
 
-    -- Add button effects
     OpenButton.MouseEnter:Connect(function()
         game:GetService("TweenService"):Create(OpenButton, TweenInfo.new(0.2), {
             BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -164,6 +188,7 @@ UI:Notify({
 -- // Auto Farm Page
 local AutoFarm = UI:addPage({ title = "Auto Farm", icon = 5012544693 })
 local SectionA = AutoFarm:addSection({ title = "Auto Farm Gold" })
+local SectionB = AutoFarm:addSection({ title = "Sell" })
 
 local autoPromptEnabled = false
 local autoSellEnabled = false
@@ -222,7 +247,7 @@ SectionA:addToggle({
     end
 })
 
-SectionA:addToggle({
+SectionB:addToggle({
     title = "Auto Sell ทอง",
     callback = function(value)
         autoSellEnabled = value
@@ -542,9 +567,9 @@ local function getHumanoid()
     return char:FindFirstChildOfClass("Humanoid")
 end
 
-local function teleportTo(cframe)
+local function teleportTo(cFrame)
     local hrp = getHRP()
-    hrp.CFrame = cframe
+    hrp.CFrame = cFrame
 end
 
 local function performHealCycle(originalCFrame, hospitalCFrame, breakSpotCFrame)
@@ -678,13 +703,15 @@ local Camera = workspace.CurrentCamera
 local selectedPlayerName = nil
 local dropdown
 
-local function getPlayerNames()
-    local names = table.create(#Players:GetPlayers() - 1)
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            table.insert(names, player.Name)
+local function safeGetPlayerNames()
+    local names = {}
+    pcall(function()
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player and player.Name and player ~= LocalPlayer then
+                table.insert(names, player.Name)
+            end
         end
-    end
+    end)
     return names
 end
 
@@ -754,81 +781,99 @@ local function transferMoney(amount, playerName)
     end)
 end
 
-local function createPlayerDropdown()
-    if dropdown then
-        dropdown:Remove()
-        dropdown = nil
-    end
-    
-    local playerList = getPlayerNames()
-    
-    if selectedPlayerName then
-        local playerStillExists = false
-        for _, name in ipairs(playerList) do
-            if name == selectedPlayerName then
-                playerStillExists = true
-                break
-            end
-        end
-        if not playerStillExists then
-            selectedPlayerName = nil
-        end
-    end
-    
-    if #playerList > 0 then
-        dropdown = SectionB:addDropdown({
-            title = "Select Player",
-            list = playerList,
-            callback = function(name)
-                selectedPlayerName = name
-                UI:Notify({
-                    title = "Player Selected",
-                    text = "Selected: " .. name
-                })
-            end
-        })
-    else
-        UI:Notify({
-            title = "Player List",
-            text = "No other players found!"
-        })
-    end
-end
-
-local function refreshAllDropdowns()
+local function updatePlayerLists()
     pcall(function()
         local prevSelectedPlayer = selectedPlayerName
         local prevTradePlayer = selectedTradePlayer
         
-        local playerList = getPlayerNames()
+        local playerList = safeGetPlayerNames()
         
-        if dropdown then
+        if dropdown and typeof(dropdown) == "table" and dropdown.Remove then
             dropdown:Remove()
             dropdown = nil
         end
-        if tradeDropdown then
+        if tradeDropdown and typeof(tradeDropdown) == "table" and tradeDropdown.Remove then
             tradeDropdown:Remove()
             tradeDropdown = nil
         end
         
-        selectedPlayerName = nil
-        selectedTradePlayer = nil
-        
-        if #playerList > 0 then
-            createPlayerDropdown()
-            createTradeDropdown()
+        local function validatePlayer(name)
+            if not name then return false end
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr and plr.Name == name then
+                    return true
+                end
+            end
+            return false
         end
         
-        UI:Notify({
-            title = "Refresh Complete", 
-            text = "Player lists have been updated"
-        })
+        if not validatePlayer(prevSelectedPlayer) then
+            prevSelectedPlayer = nil
+        end
+        if not validatePlayer(prevTradePlayer) then
+            prevTradePlayer = nil
+        end
+        
+        if #playerList > 0 then
+            pcall(function()
+                if SectionB then
+                    dropdown = SectionB:addDropdown({
+                        title = "Select Player",
+                        list = playerList,
+                        default = prevSelectedPlayer,
+                        callback = function(name)
+                            if name and Players:FindFirstChild(name) then
+                                selectedPlayerName = name
+                                UI:Notify({
+                                    title = "Player Selected",
+                                    text = "Selected: " .. name
+                                })
+                            end
+                        end
+                    })
+                end
+                
+                if TradeSection then
+                    tradeDropdown = TradeSection:addDropdown({
+                        title = "Select Player",
+                        list = playerList,
+                        default = prevTradePlayer,
+                        callback = function(name)
+                            if name and Players:FindFirstChild(name) then
+                                selectedTradePlayer = name
+                                UI:Notify({
+                                    title = "Trade Player Selected", 
+                                    text = "Selected: " .. name .. " (" .. #playerList .. " players)"
+                                })
+                            end
+                        end
+                    })
+                end
+            end)
+        end
+        
+        selectedPlayerName = prevSelectedPlayer
+        selectedTradePlayer = prevTradePlayer
+        
     end)
 end
 
+local function refreshAllDropdowns()
+    updatePlayerLists()
+end
+
 task.spawn(function()
-    createPlayerDropdown()
-    createTradeDropdown() 
+    updatePlayerLists()
+end)
+
+Players.PlayerAdded:Connect(function(player)
+    task.wait(0.1) 
+    updatePlayerLists()
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    task.wait(0.1) 
+    updatePlayerLists()
 end)
 
 SectionB:addButton({
@@ -841,19 +886,6 @@ SectionB:addButton({
         })
     end
 })
-
-Players.PlayerAdded:Connect(function(player)
-    task.wait(0.1) 
-    refreshAllDropdowns()
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    task.wait(0.1) 
-    if player.Name == selectedPlayerName then
-        selectedPlayerName = nil
-    end
-    refreshAllDropdowns()
-end)
 
 SectionB:addButton({
     title = "Spectate Player",
@@ -1310,7 +1342,13 @@ local function createTradeDropdown()
         tradeDropdown = nil
     end
     
-    local playerList = getPlayerNames()
+    -- Get fresh player list
+    local playerList = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(playerList, player.Name)
+        end
+    end
     
     if selectedTradePlayer then
         local playerStillExists = false
@@ -1329,25 +1367,32 @@ local function createTradeDropdown()
         tradeDropdown = TradeSection:addDropdown({
             title = "Select Player",
             list = playerList,
+            default = selectedTradePlayer,
             callback = function(name)
                 selectedTradePlayer = name
                 UI:Notify({
                     title = "Trade Player Selected",
-                    text = "Selected: " .. name
+                    text = "Selected: " .. name .. " (" .. #playerList .. " players online)"
                 })
             end
         })
     else
         UI:Notify({
-            title = "Player List",
-            text = "No other players found!"
+            title = "Trade List Empty",
+            text = "No players found to trade with!"
         })
     end
 end
 
 TradeSection:addButton({
-    title = "Refresh List",
-    callback = refreshAllDropdowns
+    title = "Refresh Trade List",
+    callback = function()
+        createTradeDropdown()
+        UI:Notify({
+            title = "Trade List",
+            text = "Refreshed player list"
+        })
+    end
 })
 
 TradeSection:addButton({
@@ -1402,9 +1447,8 @@ local Colors = Theme:addSection({ title = "Colors" })
 local rainbowConnection = nil
 local rainbowRunning = false
 
--- Rainbow Theme Toggle
 Colors:addToggle({
-    title = "Rainbow Theme",
+    title = " Theme",
     callback = function(state)
         rainbowRunning = state
         
