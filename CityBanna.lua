@@ -7,7 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 
 local UI = Venyx.new({
-    title = "Elystra.wtf | Beta | V0.0.1"
+    title = "Elystra.wtf | Beta | V0.0.2"
     
 })
 
@@ -55,6 +55,96 @@ local function tweenTo(pos, speed)
         tween.Completed:Wait()
     end
 end
+
+-- // Mobile UI Handler
+local function createMobileButton()
+    local ScreenGui = Instance.new("ScreenGui")
+    local OpenButton = Instance.new("TextButton")
+    local CloseButton = Instance.new("TextButton")
+    
+    ScreenGui.Name = "MobileUI"
+    ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    OpenButton.Name = "OpenUI"
+    OpenButton.Parent = ScreenGui
+    OpenButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    OpenButton.Position = UDim2.new(0.85, 0, 0.8, 0)
+    OpenButton.Size = UDim2.new(0, 50, 0, 50)
+    OpenButton.Font = Enum.Font.GothamBold
+    OpenButton.Text = "OPEN"
+    OpenButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    OpenButton.TextSize = 14.000
+    OpenButton.TextWrapped = true
+    OpenButton.Visible = true
+    OpenButton.Active = true
+    OpenButton.Draggable = true
+    
+    CloseButton.Name = "CloseUI"
+    CloseButton.Parent = ScreenGui
+    CloseButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    CloseButton.Position = UDim2.new(0.85, 0, 0.8, 0)
+    CloseButton.Size = UDim2.new(0, 50, 0, 50)
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.Text = "CLOSE"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.TextSize = 14.000
+    CloseButton.TextWrapped = true
+    CloseButton.Visible = false
+    CloseButton.Active = true
+    CloseButton.Draggable = true
+    
+    -- Make buttons rounded
+    local corner1 = Instance.new("UICorner")
+    corner1.CornerRadius = UDim.new(0, 8)
+    corner1.Parent = OpenButton
+    
+    local corner2 = Instance.new("UICorner")
+    corner2.CornerRadius = UDim.new(0, 8)
+    corner2.Parent = CloseButton
+
+    -- Add button effects
+    OpenButton.MouseEnter:Connect(function()
+        game:GetService("TweenService"):Create(OpenButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        }):Play()
+    end)
+
+    OpenButton.MouseLeave:Connect(function()
+        game:GetService("TweenService"):Create(OpenButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        }):Play()
+    end)
+
+    CloseButton.MouseEnter:Connect(function()
+        game:GetService("TweenService"):Create(CloseButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        }):Play()
+    end)
+
+    CloseButton.MouseLeave:Connect(function()
+        game:GetService("TweenService"):Create(CloseButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        }):Play()
+    end)
+    
+    OpenButton.MouseButton1Click:Connect(function()
+        UI:toggle()
+        OpenButton.Visible = false
+        CloseButton.Visible = true
+    end)
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        UI:toggle()
+        CloseButton.Visible = false
+        OpenButton.Visible = true
+    end)
+    
+    return ScreenGui
+end
+
+local mobileUI = createMobileButton()
 
 -- // Themes config 
 local Themes = {
@@ -665,7 +755,6 @@ local function transferMoney(amount, playerName)
 end
 
 local function createPlayerDropdown()
-    -- Remove existing dropdown
     if dropdown then
         dropdown:Remove()
         dropdown = nil
@@ -673,7 +762,6 @@ local function createPlayerDropdown()
     
     local playerList = getPlayerNames()
     
-    -- Reset selected player if they're no longer in game
     if selectedPlayerName then
         local playerStillExists = false
         for _, name in ipairs(playerList) do
@@ -687,7 +775,6 @@ local function createPlayerDropdown()
         end
     end
     
-    -- Create new dropdown with current player list
     if #playerList > 0 then
         dropdown = SectionB:addDropdown({
             title = "Select Player",
@@ -713,6 +800,8 @@ local function refreshAllDropdowns()
         local prevSelectedPlayer = selectedPlayerName
         local prevTradePlayer = selectedTradePlayer
         
+        local playerList = getPlayerNames()
+        
         if dropdown then
             dropdown:Remove()
             dropdown = nil
@@ -725,49 +814,33 @@ local function refreshAllDropdowns()
         selectedPlayerName = nil
         selectedTradePlayer = nil
         
-        local playerList = getPlayerNames() 
-        
         if #playerList > 0 then
-            dropdown = SectionB:addDropdown({
-                title = "Select Player",
-                list = playerList,
-                default = prevSelectedPlayer,
-                callback = function(name)
-                    selectedPlayerName = name
-                    UI:Notify({
-                        title = "Player Selected",
-                        text = "Selected: " .. name
-                    })
-                end
-            })
-            
-            tradeDropdown = TradeSection:addDropdown({
-                title = "Select Player",
-                list = playerList,
-                default = prevTradePlayer,
-                callback = function(name)
-                    selectedTradePlayer = name
-                    UI:Notify({
-                        title = "Trade Player Selected",
-                        text = "Selected: " .. name
-                    })
-                end
-            })
+            createPlayerDropdown()
+            createTradeDropdown()
         end
         
         UI:Notify({
-            title = "Refresh Complete",
+            title = "Refresh Complete", 
             text = "Player lists have been updated"
         })
     end)
 end
 
+task.spawn(function()
+    createPlayerDropdown()
+    createTradeDropdown() 
+end)
+
 SectionB:addButton({
     title = "Refresh Player List",
-    callback = refreshAllDropdowns
+    callback = function()
+        refreshAllDropdowns()
+        UI:Notify({
+            title = "Refresh",
+            text = "Refreshing player lists..."
+        })
+    end
 })
-
-createPlayerDropdown()
 
 Players.PlayerAdded:Connect(function(player)
     task.wait(0.1) 
@@ -1205,6 +1278,10 @@ MiscSection2:addButton({
         end
         
         uiDestroyed = true
+        
+        if mobileUI then
+            mobileUI:Destroy()
+        end
         
         task.spawn(function()
             UI:toggle()
