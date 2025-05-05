@@ -1336,29 +1336,25 @@ local selectedTradePlayer = nil
 local tradeDropdown
 
 local function createTradeDropdown()
+    -- Clean up existing dropdown
     if tradeDropdown then
         pcall(function()
             tradeDropdown:Remove()
             tradeDropdown = nil
         end)
+        task.wait(0.1) -- Small delay to ensure cleanup
     end
     
-    local playerList = safeGetPlayerNames() 
+    -- Get updated player list
+    local playerList = safeGetPlayerNames()
     
-    if selectedTradePlayer then
-        local playerStillExists = false
-        for _, name in ipairs(playerList) do
-            if name == selectedTradePlayer then
-                playerStillExists = true
-                break
-            end
-        end
-        if not playerStillExists then
-            selectedTradePlayer = nil
-        end
+    -- Clear invalid selection
+    if selectedTradePlayer and not table.find(playerList, selectedTradePlayer) then
+        selectedTradePlayer = nil
     end
     
-    if #playerList > 0 then
+    -- Create new dropdown only if no existing one
+    if #playerList > 0 and not tradeDropdown then
         tradeDropdown = TradeSection:addDropdown({
             title = "Select Player",
             list = playerList,
@@ -1368,7 +1364,7 @@ local function createTradeDropdown()
                     selectedTradePlayer = name
                     UI:Notify({
                         title = "Trade Player",
-                        text = string.format("Selected: %s (%d online)", name, #playerList)
+                        text = string.format("Selected: %s (%d players online)", name, #playerList)
                     })
                 end
             end
@@ -1376,7 +1372,7 @@ local function createTradeDropdown()
     else
         UI:Notify({
             title = "Trade List",
-            text = "No players available"
+            text = #playerList == 0 and "No players available" or "Refreshed player list"
         })
     end
 end
@@ -1384,12 +1380,9 @@ end
 TradeSection:addButton({
     title = "Refresh Trade List",
     callback = function()
+        -- Wrap in spawn to avoid UI freezing
         task.spawn(function()
             createTradeDropdown()
-            UI:Notify({
-                title = "Trade List",
-                text = "Player list refreshed"
-            })
         end)
     end
 })
@@ -1442,7 +1435,6 @@ end)
 local Theme = UI:addPage({ title = "Theme", icon = 121346020222219 })
 local Colors = Theme:addSection({ title = "Colors" })
 
--- // Add Rainbow Theme toggle first
 local rainbowConnection = nil
 local rainbowRunning = false
 
