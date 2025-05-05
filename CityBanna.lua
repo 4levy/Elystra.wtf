@@ -838,6 +838,10 @@ local Camera = workspace.CurrentCamera
 local selectedPlayerName = nil
 local dropdown
 
+local isSpectating = false
+local spectateLoop = nil
+local targetSpectatePlayer = nil
+
 local function safeGetPlayerNames()
     local names = {}
     pcall(function()
@@ -851,14 +855,67 @@ local function safeGetPlayerNames()
 end
 
 local function spectatePlayer(playerName)
-    local targetPlayer = Players:FindFirstChild(playerName)
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
-        Camera.CameraSubject = targetPlayer.Character.Humanoid
-        Camera.CameraType = Enum.CameraType.Custom
-        print("Now spectating:", playerName)
-    else
-        warn("Could not spectate player:", playerName)
+    if isSpectating then
+        stopSpectating()
     end
+
+    local targetPlayer = Players:FindFirstChild(playerName)
+    if not targetPlayer then 
+        UI:Notify({
+            title = "Spectate Error",
+            text = "Player not found!"
+        })
+        return 
+    end
+
+    isSpectating = true
+    targetSpectatePlayer = playerName
+
+    -- Create a loop to maintain spectating
+    if spectateLoop then
+        spectateLoop:Disconnect()
+    end
+
+    spectateLoop = RunService.RenderStepped:Connect(function()
+        if not isSpectating then return end
+        
+        local target = Players:FindFirstChild(targetSpectatePlayer)
+        if target and target.Character and target.Character:FindFirstChild("Humanoid") then
+            Camera.CameraSubject = target.Character.Humanoid
+            Camera.CameraType = Enum.CameraType.Custom
+        else
+            stopSpectating()
+            UI:Notify({
+                title = "Spectate Error",
+                text = "Lost target player!"
+            })
+        end
+    end)
+
+    UI:Notify({
+        title = "Spectate",
+        text = "Now spectating: " .. playerName
+    })
+end
+
+local function stopSpectating()
+    isSpectating = false
+    targetSpectatePlayer = nil
+    
+    if spectateLoop then
+        spectateLoop:Disconnect()
+        spectateLoop = nil
+    end
+
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        Camera.CameraSubject = LocalPlayer.Character.Humanoid
+        Camera.CameraType = Enum.CameraType.Custom
+    end
+
+    UI:Notify({
+        title = "Spectate",
+        text = "Stopped spectating"
+    })
 end
 
 local function teleportToPlayer(playerName)
@@ -879,41 +936,6 @@ local function teleportToPlayer(playerName)
             text = "Could not teleport to player!"
         })
     end
-end
-
-local function stopSpectating()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        Camera.CameraSubject = LocalPlayer.Character.Humanoid
-        Camera.CameraType = Enum.CameraType.Custom
-        print("Stopped spectating.")
-    end
-end
-
-local function transferMoney(amount, playerName)
-    if amount <= 0 then
-        UI:Notify({
-            title = "Transfer Error",
-            text = "Please enter a valid amount!"
-        })
-        return
-    end
-    
-    pcall(function()
-        local args = {
-            "Transfer",
-            amount,
-            playerName
-        }
-        
-        local result = game:GetService("ReplicatedStorage"):WaitForChild("BankFolder"):WaitForChild("RemoteFunction"):InvokeServer(unpack(args))
-        
-        if result then
-            UI:Notify({
-                title = "Transfer Success",
-                text = "Transferred $" .. amount .. " to " .. playerName
-            })
-        end
-    end)
 end
 
 local function updatePlayerLists()
