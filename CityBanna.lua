@@ -51,35 +51,49 @@ end)
 local function tweenTo(pos, speed)
     if not humanoidRootPart then return end
     
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.Sit = false
+    end
+    
     local startPos = humanoidRootPart.Position
     local distance = (startPos - pos).Magnitude
-    local time = distance / (speed * 6) 
-    
-    local heightOffset = math.min(distance * 0.15, 15)
-    local midPoint = startPos + (pos - startPos) * 0.5 + Vector3.new(0, heightOffset, 0)
+    local time = distance / (speed or 150) 
     
     local info = TweenInfo.new(
-        time * 0.5, 
-        Enum.EasingStyle.Linear, 
+        time,
+        Enum.EasingStyle.Linear,
         Enum.EasingDirection.Out,
         0,
         false,
         0
     )
     
-    local waypoints = {
-        CFrame.new(startPos),
-        CFrame.new(midPoint),
-        CFrame.new(pos)
-    }
-    
-    for i = 2, #waypoints do
-        local tween = TweenService:Create(humanoidRootPart, info, {
-            CFrame = waypoints[i]
-        })
+    local tween = TweenService:Create(humanoidRootPart, info, {
+        CFrame = CFrame.new(pos) * CFrame.new(0, 2, 0) 
+    })
+
+    local sitPrevention
+    sitPrevention = RunService.Heartbeat:Connect(function()
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.Sit = false
+        end
+    end)
+
+    local success, err = pcall(function()
         tween:Play()
         tween.Completed:Wait()
+    end)
+    
+    if sitPrevention then
+        sitPrevention:Disconnect()
     end
+    
+    if not success then
+        warn("Tween failed:", err)
+        tween:Cancel()
+    end
+    
+    return success
 end
 
 -- // Mobile UI Handler
