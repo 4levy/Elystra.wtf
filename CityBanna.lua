@@ -187,7 +187,7 @@ UI:Notify({
 
 -- // Auto Farm Page
 local AutoFarm = UI:addPage({ title = "Auto Farm", icon = 138414236481406 })
-local SectionA = AutoFarm:addSection({ title = "Auto Farm Gold" })
+local SectionA = AutoFarm:addSection({ title = "Auto Farm" })
 local SectionB = AutoFarm:addSection({ title = "Sell" })
 
 local autoPromptEnabled = false
@@ -242,7 +242,7 @@ local function safeTweenTo(pos, speed)
 end
 
 SectionA:addToggle({
-    title = "Auto Farm",
+    title = "Auto Farm Gold",
     callback = function(value)
         autoFarmGoldEnabled = value
         
