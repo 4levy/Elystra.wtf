@@ -13,8 +13,6 @@ local defaultScript = function()
             player:Kick("\nElystra.wtf\n\nThis game is not supported!")
         end)
     end
-    task.wait(1)
-    game:Shutdown()
 end
 
 if scripts[placeId] then
