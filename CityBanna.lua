@@ -195,6 +195,7 @@ local autoSellEnabled = false
 local alwaysEnablePrompt = false
 local autoTweenEnabled = false
 local tweenPlatform = nil
+local autoFarmGoldEnabled = false
 
 local function createTweenPlatform(position)
     if tweenPlatform then
@@ -241,9 +242,23 @@ local function safeTweenTo(pos, speed)
 end
 
 SectionA:addToggle({
-    title = "Auto Prompt ทอง",
+    title = "Auto Farm",
     callback = function(value)
+        autoFarmGoldEnabled = value
+        
         autoPromptEnabled = value
+        alwaysEnablePrompt = value
+        autoTweenEnabled = value
+        
+        for _, toggle in pairs(SectionA:GetComponents()) do
+            if toggle.Type == "Toggle" then
+                if toggle.Title == "Auto Prompt ทอง" or 
+                   toggle.Title == "Enable Prompt เมื่อร้านปิด" or
+                   toggle.Title == "Auto Tween" then
+                    toggle:Set(value)
+                end
+            end
+        end
     end
 })
 
@@ -256,20 +271,6 @@ SectionB:addToggle({
         local character = player.Character or player.CharacterAdded:Wait()
         local hrp = character:WaitForChild("HumanoidRootPart")
         hrp.CFrame = CFrame.new(Vector3.new(51.839500, 69.451118, 6.100793))
-    end
-})
-
-SectionA:addToggle({
-    title = "Enable Prompt เมื่อร้านปิด",
-    callback = function(value)
-        alwaysEnablePrompt = value
-    end
-})
-
-SectionA:addToggle({
-    title = "Auto Tween",
-    callback = function(value)
-        autoTweenEnabled = value
     end
 })
 
@@ -1380,7 +1381,6 @@ end
 TradeSection:addButton({
     title = "Refresh Trade List",
     callback = function()
-        -- Wrap in spawn to avoid UI freezing
         task.spawn(function()
             createTradeDropdown()
         end)
@@ -1435,6 +1435,7 @@ end)
 local Theme = UI:addPage({ title = "Theme", icon = 121346020222219 })
 local Colors = Theme:addSection({ title = "Colors" })
 
+-- // Add Rainbow Theme toggle first
 local rainbowConnection = nil
 local rainbowRunning = false
 
