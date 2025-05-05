@@ -186,7 +186,7 @@ UI:Notify({
 })
 
 -- // Auto Farm Page
-local AutoFarm = UI:addPage({ title = "Auto Farm", icon = 138414236481406 })
+local AutoFarm = UI:addPage({ title = "Auto Farm", icon = 5012544693 })
 local SectionA = AutoFarm:addSection({ title = "Auto Farm" })
 local SectionB = AutoFarm:addSection({ title = "Auto Sell" })
 
@@ -538,7 +538,7 @@ end)
 
 -- // END 
 
-local Aroundmap = UI:addPage({ title = "Teleport", icon = 101222758301298 })
+local Aroundmap = UI:addPage({ title = "Teleport", icon = 5012544693 })
 local SectionA = Aroundmap:addSection({ title = "Teleport" })
 
 SectionA:addButton({
@@ -659,7 +659,7 @@ PlatformSection:addSlider({
     end
 })
 
-local Combat = UI:addPage({ title = "Combat", icon = 118027902935742 })
+local Combat = UI:addPage({ title = "Combat", icon = 5012544693 })
 local SectionA = Combat:addSection({ title = "Warp" })
 local SectionB = Combat:addSection({ title = "Player" })
 
@@ -1172,7 +1172,7 @@ SectionB:addSlider({
 
 
 -- // Misc Page
-local Misc = UI:addPage({ title = "Misc", icon = 128991055506130 })
+local Misc = UI:addPage({ title = "Misc", icon = 5012544693 })
 local MiscSection = Misc:addSection({ title = "Utility" })
 local MiscSection2 = Misc:addSection({ title = "Ui" })
 
@@ -1451,7 +1451,7 @@ MiscSection2:addButton({
 })
 
 -- // Trade
-local Trading = UI:addPage({ title = "Trade", icon = 74081049753470 })
+local Trading = UI:addPage({ title = "Trade", icon = 5012544693 })
 local TradeSection = Trading:addSection({ title = "Trade" })
 
 local selectedTradePlayer = nil
@@ -1553,7 +1553,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- // Theme Page
-local Theme = UI:addPage({ title = "Theme", icon = 121346020222219 })
+local Theme = UI:addPage({ title = "Theme", icon = 5012544693 })
 local Colors = Theme:addSection({ title = "Colors" })
 
 -- // Add Rainbow Theme toggle first
