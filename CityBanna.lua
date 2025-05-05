@@ -188,7 +188,7 @@ UI:Notify({
 -- // Auto Farm Page
 local AutoFarm = UI:addPage({ title = "Auto Farm", icon = 138414236481406 })
 local SectionA = AutoFarm:addSection({ title = "Auto Farm" })
-local SectionB = AutoFarm:addSection({ title = "Sell" })
+local SectionB = AutoFarm:addSection({ title = "Auto Sell" })
 
 local autoPromptEnabled = false
 local autoSellEnabled = false
