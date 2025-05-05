@@ -186,7 +186,7 @@ UI:Notify({
 })
 
 -- // Auto Farm Page
-local AutoFarm = UI:addPage({ title = "Auto Farm", icon = 5012544693 })
+local AutoFarm = UI:addPage({ title = "Auto Farm", icon = 138414236481406 })
 local SectionA = AutoFarm:addSection({ title = "Auto Farm Gold" })
 local SectionB = AutoFarm:addSection({ title = "Sell" })
 
@@ -416,7 +416,7 @@ end)
 
 -- // END 
 
-local Aroundmap = UI:addPage({ title = "Teleport", icon = 5012544693 })
+local Aroundmap = UI:addPage({ title = "Teleport", icon = 101222758301298 })
 local SectionA = Aroundmap:addSection({ title = "Teleport" })
 
 SectionA:addButton({
@@ -493,9 +493,8 @@ PlatformSection:addSlider({
             platform.Position = Vector3.new(currentPos.X, value, currentPos.Z)
             
             local player = game.Players.LocalPlayer
-            local character = player.Character
-            if character then
-                local hrp = character:FindFirstChild("HumanoidRootPart")
+            if player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
                     hrp.CFrame = CFrame.new(Vector3.new(currentPos.X, value + 3, currentPos.Z))
                 end
@@ -538,7 +537,7 @@ PlatformSection:addSlider({
     end
 })
 
-local Combat = UI:addPage({ title = "Combat", icon = 5012544693 })
+local Combat = UI:addPage({ title = "Combat", icon = 118027902935742 })
 local SectionA = Combat:addSection({ title = "Warp" })
 local SectionB = Combat:addSection({ title = "Player" })
 
@@ -1051,7 +1050,7 @@ SectionB:addSlider({
 
 
 -- // Misc Page
-local Misc = UI:addPage({ title = "Misc", icon = 5012544693 })
+local Misc = UI:addPage({ title = "Misc", icon = 128991055506130 })
 local MiscSection = Misc:addSection({ title = "Utility" })
 local MiscSection2 = Misc:addSection({ title = "Ui" })
 
@@ -1330,7 +1329,7 @@ MiscSection2:addButton({
 })
 
 -- // Trade
-local Trading = UI:addPage({ title = "Trade", icon = 5012544693 })
+local Trading = UI:addPage({ title = "Trade", icon = 74081049753470 })
 local TradeSection = Trading:addSection({ title = "Trade" })
 
 local selectedTradePlayer = nil
@@ -1338,17 +1337,13 @@ local tradeDropdown
 
 local function createTradeDropdown()
     if tradeDropdown then
-        tradeDropdown:Remove()
-        tradeDropdown = nil
+        pcall(function()
+            tradeDropdown:Remove()
+            tradeDropdown = nil
+        end)
     end
     
-    -- Get fresh player list
-    local playerList = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            table.insert(playerList, player.Name)
-        end
-    end
+    local playerList = safeGetPlayerNames() 
     
     if selectedTradePlayer then
         local playerStillExists = false
@@ -1369,17 +1364,19 @@ local function createTradeDropdown()
             list = playerList,
             default = selectedTradePlayer,
             callback = function(name)
-                selectedTradePlayer = name
-                UI:Notify({
-                    title = "Trade Player Selected",
-                    text = "Selected: " .. name .. " (" .. #playerList .. " players online)"
-                })
+                if name and Players:FindFirstChild(name) then
+                    selectedTradePlayer = name
+                    UI:Notify({
+                        title = "Trade Player",
+                        text = string.format("Selected: %s (%d online)", name, #playerList)
+                    })
+                end
             end
         })
     else
         UI:Notify({
-            title = "Trade List Empty",
-            text = "No players found to trade with!"
+            title = "Trade List",
+            text = "No players available"
         })
     end
 end
@@ -1387,11 +1384,13 @@ end
 TradeSection:addButton({
     title = "Refresh Trade List",
     callback = function()
-        createTradeDropdown()
-        UI:Notify({
-            title = "Trade List",
-            text = "Refreshed player list"
-        })
+        task.spawn(function()
+            createTradeDropdown()
+            UI:Notify({
+                title = "Trade List",
+                text = "Player list refreshed"
+            })
+        end)
     end
 })
 
@@ -1440,7 +1439,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- // Theme Page
-local Theme = UI:addPage({ title = "Theme", icon = 5012544693 })
+local Theme = UI:addPage({ title = "Theme", icon = 121346020222219 })
 local Colors = Theme:addSection({ title = "Colors" })
 
 -- // Add Rainbow Theme toggle first
@@ -1448,7 +1447,7 @@ local rainbowConnection = nil
 local rainbowRunning = false
 
 Colors:addToggle({
-    title = " Theme",
+    title = "RGB Theme",
     callback = function(state)
         rainbowRunning = state
         
