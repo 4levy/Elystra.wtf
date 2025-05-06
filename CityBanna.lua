@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
+local RemoteEvent = ReplicatedStorage:WaitForChild("RemoteEvent")
 
 local UI = Venyx.new({
     title = "Elystra.wtf | Beta | V0.0.2"
@@ -1284,25 +1285,42 @@ MiscSection:addButton({
     end
 })
 
+
+local function updateVehicleSpeed(speed: number)
+    local args = {
+        {
+            {
+                "\009",
+                "Speed",
+                speed
+            }
+        }
+    }
+    RemoteEvent:FireServer(unpack(args))
+end
+
 MiscSection2:addSlider({
     title = "Vehicle Speed",
     default = 1,
     min = 1,
     max = 100,
-    callback = function(value)
-        local args = {
-            {
-                {
-                    "\009",
-                    "Speed",
-                    value
-                }
-            }
-        }
-        game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+    increment = 1,
+    callback = function(value: number)
+        updateVehicleSpeed(value)
     end
 })
 
+
+MiscSection2:addButton({
+    title = "Vehicle Fly ( One Click Only )",
+    callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ReactorCoreDev/VehicleFly/refs/heads/main/main.lua"))()
+        UI:Notify({
+            title = "Vehicle Fly",
+            text = "Credit: ReactorCoreDev"
+        })
+    end
+})
 
 MiscSection:addButton({
     title = "Fix Cam",
