@@ -251,7 +251,7 @@ local function safeTweenTo(pos, speed)
     
     local distance = (humanoidRootPart.Position - pos).Magnitude
     local time = distance / speed
-    local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(time, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
+    local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(7, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
     tween:Play()
     tween.Completed:Wait()
 end
