@@ -461,6 +461,10 @@ sections.AutoFarmSection:AddToggle({
                                 library:SendNotification("Got Mail Box", 1, Color3.new(0, 1, 0))
                                 teleport(LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 15, 0))
                             else
+                                teleport(pad.Position + Vector3.new(0, 25, 0)) 
+                                task.wait(0.3)
+                                teleport(pad.Position + Vector3.new(0, 2, 0)) 
+                                task.wait(0.2)
                                 library:SendNotification("Failed to get box, retrying...", 1, Color3.new(1, 0, 0))
                             end
                         end
@@ -523,7 +527,22 @@ sections.AutoFarmSection:AddToggle({
                                 end
                                 
                                 task.wait(0.5)
-                                break -- only one customer per loop
+                                local returnPlatform = Instance.new("Part")
+                                returnPlatform.Size = Vector3.new(6, 1, 6)
+                                returnPlatform.Anchored = true
+                                returnPlatform.Transparency = 0.5
+                                returnPlatform.Parent = workspace
+                                
+                                local returnPos = LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 50, 0)
+                                returnPlatform.CFrame = CFrame.new(returnPos.X, returnPos.Y - 3.5, returnPos.Z)
+                                teleport(returnPos)
+                                task.wait(0.3)
+
+                                task.spawn(function()
+                                    task.wait(1)
+                                    returnPlatform:Destroy()
+                                end)
+                                break
                             end
                         end
                     end
