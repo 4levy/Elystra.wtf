@@ -226,19 +226,33 @@ local function initAutoEat()
                 local hunger = player.Hunger.Value
                 local thirst = player.Thristy.Value
                 
-                if hunger < threshold then
+                if hunger < threshold and thirst < threshold then
                     for _, food in ipairs(foodItems) do
                         inventory:FireServer("Use", food)
                         task.wait(0.15)
                         if player.Hunger.Value > threshold then break end
                     end
-                end
-                
-                if thirst < threshold then
+                    task.wait(0.5)
                     for _, drink in ipairs(drinkItems) do
                         inventory:FireServer("Use", drink)
                         task.wait(0.15)
                         if player.Thristy.Value > threshold then break end
+                    end
+                else
+                    if hunger < threshold then
+                        for _, food in ipairs(foodItems) do
+                            inventory:FireServer("Use", food)
+                            task.wait(0.15)
+                            if player.Hunger.Value > threshold then break end
+                        end
+                    end
+                    
+                    if thirst < threshold then
+                        for _, drink in ipairs(drinkItems) do
+                            inventory:FireServer("Use", drink)
+                            task.wait(0.15)
+                            if player.Thristy.Value > threshold then break end
+                        end
                     end
                 end
             end
