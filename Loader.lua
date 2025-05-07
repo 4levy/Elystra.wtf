@@ -1,8 +1,10 @@
 local placeId = game.PlaceId
-
 local scripts = {
     [6925849909] = function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/4levy/Elystra.wtf/refs/heads/main/CityBanna.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/4levy/Elystra.wtf/refs/heads/main/CityBanna.lua"))()
+    end,
+    [77837537595343] = function() 
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/4levy/Elystra.wtf/refs/heads/main/BannaTown.lua"))()
     end,
 }
 
