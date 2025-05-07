@@ -4,8 +4,34 @@ local TweenInfo = TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.I
 local lp = game.Players.LocalPlayer
 
 local teleport_table = {
-    spawn = Vector3.new(339, 7, 185)
+    spawn = Vector3.new(339, 7, 185),
+    gunStore = Vector3.new(493, 7, 1163),
+    carstore = Vector3.new(203, 8, 1211),
+    hospital = Vector3.new(-183, 8, 1507),
+    policestation = Vector3.new(788, 14, -31),
+    MilitaryBase = Vector3.new(2980, 7, 2653),
+    diyStore = Vector3.new(-287, 7, -11),
 }
+
+local function createFollowPlatform(character)
+    local platform = Instance.new("Part")
+    platform.Size = Vector3.new(6, 1, 6)
+    platform.Anchored = true
+    platform.Transparency = 0.5
+    platform.Parent = workspace
+    
+    local connection = game:GetService("RunService").Heartbeat:Connect(function()
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            platform.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, -3.5, 0)
+            platform.Color = Color3.fromHSV(tick() % 1, 1, 1)
+        else
+            platform:Destroy()
+            connection:Disconnect()
+        end
+    end)
+    
+    return platform, connection
+end
 
 local function teleport(v)
     if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then
@@ -13,10 +39,27 @@ local function teleport(v)
         return
     end
 
-    local humanoid = lp.Character:FindFirstChild("Humanoid")
-    local root = lp.Character.HumanoidRootPart
+    local character = lp.Character
+    local humanoid = character:FindFirstChild("Humanoid")
+    local root = character.HumanoidRootPart
 
     if humanoid then
+        local sitConnection
+        sitConnection = humanoid.Seated:Connect(function(active)
+            if active then
+                humanoid.Jump = true
+                humanoid.Sit = false
+            end
+        end)
+
+        local originalCollisions = {}
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                originalCollisions[part] = part.CanCollide
+                part.CanCollide = false
+            end
+        end
+
         local originalVelocity = root.Velocity
         local originalState = humanoid:GetState()
         
@@ -31,14 +74,31 @@ local function teleport(v)
         
         local stateConn = humanoid.StateChanged:Connect(function()
             humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
         end)
+        
+        local followPlatform, platformConnection = createFollowPlatform(character)
         
         tween:Play()
         tween.Completed:Wait()
         
         stateConn:Disconnect()
+        sitConnection:Disconnect()
+        platformConnection:Disconnect()
+        followPlatform:Destroy()
         humanoid:ChangeState(originalState)
-        task.wait(0.1) 
+
+        for part, canCollide in pairs(originalCollisions) do
+            if part then
+                part.CanCollide = canCollide
+            end
+        end
+
+        task.wait(0.1)
     end
 end
 
@@ -84,7 +144,7 @@ local sections = {
     MiscSettings = tabs.Misc:AddSection("Settings", 2),
 }
 
-local safePosition = Vector3.new(802, -118, -8)
+local safePosition = Vector3.new(1816, 5890, 13751)
 
 local function createPlatform()
     local platform = Instance.new("Part")
@@ -143,7 +203,7 @@ sections.AutoFarmSection:AddToggle({
     enabled = true,
     text = "Auto Farm cement",
     flag = "AutoFarm_Enable",
-    tooltip = "Automatically steals and sells cement",
+    tooltip = "Automatically steals cement",
     risky = true,
     callback = function(value)
         if value then
@@ -176,14 +236,6 @@ sections.AutoFarmSection:AddToggle({
                                     
                                     teleport(safePosition)
                                     task.wait(0.1)
-                                    
-                                    local backpack = lp.Backpack
-                                    for _, item in pairs(backpack:GetChildren()) do
-                                        if item.Name == "Cement bag" then
-                                            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer("Cement bag", 1)
-                                            task.wait(0.1)
-                                        end
-                                    end
                                 end
                             end
                             task.wait(0.1)
@@ -204,7 +256,7 @@ sections.AutoFarmSection:AddToggle({
     enabled = true,
     text = "Auto Farm Wires",
     flag = "AutoFarm_Wires",
-    tooltip = "Automatically steals and sells wires",
+    tooltip = "Automatically steals wires",
     risky = true,
     callback = function(value)
         if value then
@@ -237,14 +289,6 @@ sections.AutoFarmSection:AddToggle({
                                     
                                     teleport(safePosition)
                                     task.wait(0.1)
-                                    
-                                    local backpack = lp.Backpack
-                                    for _, item in pairs(backpack:GetChildren()) do
-                                        if item.Name == "Wire" then
-                                            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer("Wire", 1)
-                                            task.wait(0.1)
-                                        end
-                                    end
                                 end
                             end
                             task.wait(0.1)
@@ -261,6 +305,48 @@ sections.AutoFarmSection:AddToggle({
     end
 })
 
+sections.AutoFarmSection:AddToggle({
+    enabled = true,
+    text = "Auto Farm Mail Delivery ( Soon )",
+    flag = "AutoFarm_Mail",
+    tooltip = "Automatically delivers mail",
+    risky = true,
+    callback = function(value)
+        if value then
+            library:SendNotification("UnderDeveloped", 5, Color3.new(1, 0, 0)) 
+        end
+    end
+})
+
+sections.AutoFarmSection:AddToggle({
+    enabled = true,
+    text = "Auto Farm Tree ( Soon )",
+    flag = "AutoFarm_Tree",
+    tooltip = "Automatically farms trees",
+    risky = true,
+    callback = function(value)
+        if value then
+            library:SendNotification("UnderDeveloped", 5, Color3.new(1, 0, 0)) 
+        end
+    end
+})
+
+sections.AutoFarmSection:AddToggle({
+    enabled = true,
+    text = "Auto Arrest Criminals ( Soon )",
+    flag = "AutoFarm_Criminals",
+    tooltip = "Automatically arrests criminals",
+    risky = true,
+    callback = function(value)
+        if value then
+            library:SendNotification("UnderDeveloped", 5, Color3.new(1, 0, 0)) 
+        end
+    end
+})
+
+
+
+
 -- Combat Tab Elements
 
 sections.CombatMain:AddButton({
@@ -269,8 +355,7 @@ sections.CombatMain:AddButton({
     tooltip = "Teleport to a player",
     risky = false,
     callback = function(value)
-        print("Teleporting to player")
-
+        library:SendNotification("UnderDeveloped", 5, Color3.new(1, 0, 0))
     end
 })
 
@@ -377,30 +462,40 @@ sections.PlayerMain:AddToggle({
             if _G.AutoBuyFood then return end 
             _G.AutoBuyFood = true
             task.spawn(function()
-                while _G.AutoBuyFood do
-                    local foodItems = {"Hot Dog", "Hamburger", "Grill Squid", "Donut", "Icecream", "Shrimp Stick"}
-                    
-                    for _, item in pairs(workspace.BuyItem:GetChildren()) do
-                        if table.find(foodItems, item.Name) and _G.AutoBuyFood then
-                            teleport(item.Position)
-                            task.wait(0.2)
-                            
-                            local prompt = item:FindFirstChild("ProximityPrompt")
-                            if prompt then
-                                prompt.MaxActivationDistance = math.huge
-                                fireproximityprompt(prompt)
-                                task.wait(0.5)
+                while _G.AutoBuyFood and task.wait(0.1) do
+                    pcall(function()
+                        local foodItems = {
+                            ["Hot Dog"] = true,
+                            ["Hamburger"] = true,
+                            ["Grill Squid"] = true,
+                            ["Donut"] = true,
+                            ["Icecream"] = true,
+                            ["Shrimp Stick"] = true
+                        }
+                        
+                        for _, item in pairs(workspace.BuyItem:GetChildren()) do
+                            if not _G.AutoBuyFood then break end
+                            if foodItems[item.Name] then
+                                local prompt = item:FindFirstChild("ProximityPrompt")
+                                if prompt then
+                                    teleport(item.Position + Vector3.new(0, 2, 0))
+                                    task.wait(0.2)
+                                    
+                                    for i = 1, 3 do -- Try 3 times
+                                        prompt.MaxActivationDistance = math.huge
+                                        prompt.HoldDuration = 0
+                                        fireproximityprompt(prompt)
+                                        task.wait(0.2)
+                                    end
+                                end
                             end
                         end
-                    end
-                    task.wait(1)
+                        task.wait(1)
+                    end)
                 end
             end)
         else
             _G.AutoBuyFood = false
-            for _, tween in pairs(tween_s:GetChildren()) do
-                tween:Cancel()
-            end
         end
     end
 })
@@ -416,30 +511,38 @@ sections.PlayerMain:AddToggle({
             if _G.AutoBuyDrink then return end 
             _G.AutoBuyDrink = true
             task.spawn(function()
-                while _G.AutoBuyDrink do
-                    local drinks = {"Water", "Cola", "Coffee", "Smoothie"}
-                    
-                    for _, item in pairs(workspace.BuyItem:GetChildren()) do
-                        if table.find(drinks, item.Name) and _G.AutoBuyDrink then
-                            teleport(item.Position)
-                            task.wait(0.2)
-                            
-                            local prompt = item:FindFirstChild("ProximityPrompt")
-                            if prompt then
-                                prompt.MaxActivationDistance = math.huge
-                                fireproximityprompt(prompt)
-                                task.wait(0.5)
+                while _G.AutoBuyDrink and task.wait(0.1) do
+                    pcall(function()
+                        local drinks = {
+                            ["Water"] = true,
+                            ["Cola"] = true,
+                            ["Coffee"] = true,
+                            ["Smoothie"] = true
+                        }
+                        
+                        for _, item in pairs(workspace.BuyItem:GetChildren()) do
+                            if not _G.AutoBuyDrink then break end
+                            if drinks[item.Name] then
+                                local prompt = item:FindFirstChild("ProximityPrompt")
+                                if prompt then
+                                    teleport(item.Position + Vector3.new(0, 2, 0))
+                                    task.wait(0.2)
+                                    
+                                    for i = 1, 3 do -- Try 3 times
+                                        prompt.MaxActivationDistance = math.huge
+                                        prompt.HoldDuration = 0
+                                        fireproximityprompt(prompt)
+                                        task.wait(0.2)
+                                    end
+                                end
                             end
                         end
-                    end
-                    task.wait(1)
+                        task.wait(1)
+                    end)
                 end
             end)
         else
             _G.AutoBuyDrink = false
-            for _, tween in pairs(tween_s:GetChildren()) do
-                tween:Cancel()
-            end
         end
     end
 })
@@ -465,11 +568,79 @@ sections.TeleportLocations:AddButton({
     flag = "Teleport_Spawn",
     tooltip = "Teleport to spawn",
     risky = false,
-    confirm = true,
     callback = function(value)
         teleport(teleport_table.spawn)
     end
 })
+
+sections.TeleportLocations:AddButton({
+    enabled = true,
+    text = "Gun Store",
+    flag = "Teleport_GunStore",
+    tooltip = "Teleport to gun store",
+    risky = false,
+    callback = function(value)
+        teleport(teleport_table.gunStore)
+    end
+})
+
+sections.TeleportLocations:AddButton({
+    enabled = true,
+    text = "Car Store",
+    flag = "Teleport_CarStore",
+    tooltip = "Teleport to car store",
+    risky = false,
+    callback = function(value)
+        teleport(teleport_table.carstore)
+    end
+})
+
+sections.TeleportLocations:AddButton({
+    enabled = true,
+    text = "Hospital",
+    flag = "Teleport_Hospital",
+    tooltip = "Teleport to hospital",
+    risky = false,
+    callback = function(value)
+        teleport(teleport_table.hospital)
+    end
+})
+
+
+sections.TeleportLocations:AddButton({
+    enabled = true,
+    text = "Police Station",
+    flag = "Teleport_PoliceStation",
+    tooltip = "Teleport to police station",
+    risky = false,
+    callback = function(value)
+        teleport(teleport_table.policestation)
+    end
+})
+
+sections.TeleportLocations:AddButton({
+    enabled = true,
+    text = "Military Base",
+    flag = "Teleport_MilitaryBase",
+    tooltip = "Teleport to military base",
+    risky = false,
+    callback = function(value)
+        teleport(teleport_table.MilitaryBase)
+    end
+})
+
+sections.TeleportLocations:AddButton({
+    enabled = true,
+    text = "D.I.Y Store",
+    flag = "Teleport_DIYStore",
+    tooltip = "Teleport to D.I.Y store",
+    risky = false,
+    callback = function(value)
+        teleport(teleport_table.diyStore)
+    end
+})
+
+
 
 sections.TeleportLocations:AddSeparator({
     text = "Special Locations"
@@ -509,17 +680,66 @@ sections.MiscMain:AddButton({
     end
 })
 
-sections.MiscMain:AddBind({
-    text = "Panic Button",
-    flag = "Misc_Panic",
-    nomouse = true,
-    noindicator = false,
-    tooltip = "Press to disable all features",
-    mode = "toggle",
-    bind = Enum.KeyCode.P,
-    risky = false,
-    keycallback = function(value)
-        print("Panic button pressed!")
+sections.MiscMain:AddButton({
+    enabled = true,
+    text = "Ragdoll",
+    flag = "Misc_Ragdoll",
+    tooltip = "Enable ragdoll effect",
+    callback = function()
+        local args = {
+            "Ragdoll"
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("OnDeathEvent"):FireServer(unpack(args))
+    end
+})
+
+sections.MiscMain:AddButton({
+    enabled = true,
+    text = "unRagdoll",
+    flag = "Misc_unRagdoll",
+    tooltip = "Enable unragdoll effect",
+    callback = function()
+        local args = {
+            "Unragdoll"
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("OnDeathEvent"):FireServer(unpack(args))
+        
+    end
+})
+
+local AntiRagdollEnabled = true
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local OnDeathEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("OnDeathEvent")
+
+local function setupAntiRagdoll()
+    local function unragdollOnRagdoll(char)
+        if not AntiRagdollEnabled then return end
+        char.DescendantAdded:Connect(function(desc)
+            if desc:IsA("Motor6D") and desc.Name == "RagdollConstraint" then
+                task.wait(0.1)
+                OnDeathEvent:FireServer("Unragdoll")
+            end
+        end)
+    end
+
+    local player = game:GetService("Players").LocalPlayer
+    player.CharacterAdded:Connect(unragdollOnRagdoll)
+
+    if player.Character then
+        unragdollOnRagdoll(player.Character)
+    end
+end
+
+setupAntiRagdoll()
+
+sections.MiscMain:AddToggle({
+    text = "Anti-Ragdoll",
+    flag = "Misc_AntiRagdoll",
+    tooltip = "Automatically remove ragdoll effect",
+    state = true,
+    callback = function(state)
+        AntiRagdollEnabled = state
     end
 })
 
