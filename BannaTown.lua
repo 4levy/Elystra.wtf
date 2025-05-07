@@ -110,9 +110,9 @@ end
 -- Auto Farm Tab Elements
 sections.AutoFarmSection:AddToggle({
     enabled = true,
-    text = "Enable Auto Farm",
+    text = "Auto Farm cement",
     flag = "AutoFarm_Enable",
-    tooltip = "Automatically steals cement",
+    tooltip = "Automatically steals and sells cement",
     risky = true,
     callback = function(value)
         if value then
@@ -132,9 +132,85 @@ sections.AutoFarmSection:AddToggle({
                                 
                                 prompt.MaxActivationDistance = math.huge
                                 prompt.HoldDuration = 0
+                                prompt.Enabled = true  
                                 fireproximityprompt(prompt)
                                 
                                 teleport(safePosition)
+
+                                local backpack = lp.Backpack
+                                for _, item in pairs(backpack:GetChildren()) do
+                                    if item.Name == "Cement bag" then
+                                        local args = {"Cement bag", 1}
+                                        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer(unpack(args))
+                                        task.wait(0.1)
+                                    end
+                                end
+
+                                local startTime = tick()
+                                while tick() - startTime < 300 and _G.AutoFarm do
+                                    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                                        local currentPos = lp.Character.HumanoidRootPart.Position
+                                        local distance = (currentPos - safePosition).Magnitude
+                                        
+                                        if distance > 5 then
+                                            teleport(safePosition)
+                                        end
+                                    end
+                                    task.wait(0.1)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                end
+                
+                if platform then
+                    platform:Destroy()
+                end
+            end)
+        else
+            _G.AutoFarm = false
+        end
+    end
+})
+
+sections.AutoFarmSection:AddToggle({
+    enabled = true,
+    text = "Auto Farm Wires",
+    flag = "AutoFarm_Wires",
+    tooltip = "Automatically steals and sells wires",
+    risky = true,
+    callback = function(value)
+        if value then
+            _G.AutoFarm = true
+            local platform = createPlatform()
+            
+            task.spawn(function()
+                while _G.AutoFarm do
+                    local wiresFolder = workspace.Grey_Jobs.Wires
+                    if wiresFolder then
+                        local wireBase = wiresFolder:GetChildren()[3]
+                        if wireBase and wireBase:FindFirstChild("Attachment") then
+                            local prompt = wireBase.Attachment.ProximityPrompt
+                            if prompt then
+                                teleport(wireBase.Position + Vector3.new(0, 2, 0))
+                                task.wait(0.3)
+                                
+                                prompt.MaxActivationDistance = math.huge 
+                                prompt.HoldDuration = 0
+                                prompt.Enabled = true  
+                                fireproximityprompt(prompt)
+                                
+                                teleport(safePosition)
+
+                                local backpack = lp.Backpack
+                                for _, item in pairs(backpack:GetChildren()) do
+                                    if item.Name == "Wire" then
+                                        local args = {"Wire", 1}
+                                        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer(unpack(args))
+                                        task.wait(0.1)
+                                    end
+                                end
 
                                 local startTime = tick()
                                 while tick() - startTime < 300 and _G.AutoFarm do
@@ -419,7 +495,6 @@ sections.PlayerMain:AddToggle({
             end)
         else
             _G.AutoBuyDrink = false
-            -- Cancel any ongoing tweens
             for _, tween in pairs(tween_s:GetChildren()) do
                 tween:Cancel()
             end
