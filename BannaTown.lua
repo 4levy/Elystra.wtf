@@ -43,7 +43,7 @@ local function teleport(v)
 end
 
 getgenv().Config = {
-    Invite = "Elystra.wtf",
+    Invite = "NO_DISCORD_INVITE",
     Version = "0.0.1",
 }
 getgenv().luaguardvars = {
@@ -53,7 +53,7 @@ local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/drill
 library:init() -- Initalizes Library Do Not Delete This
 
 local Window = library.NewWindow({
-    title = "Elystra.wtf",
+    title = "Elystra.wtf | Beta | " .. getgenv().Config.Version,
     size = UDim2.new(0, 525, 0, 650)
 })
 
@@ -94,7 +94,6 @@ local function createPlatform()
     platform.Position = safePosition - Vector3.new(0, 2, 0)
     platform.Parent = workspace
     
-    -- RGB Effect
     task.spawn(function()
         while platform.Parent do
             for i = 0, 1, 0.01 do
@@ -107,7 +106,39 @@ local function createPlatform()
     return platform
 end
 
--- Auto Farm Tab Elements
+local function initAutoEat()
+    local inventory = game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("InventoryEvent")
+    local player = game:GetService("Players").LocalPlayer
+    local threshold = 50 
+    
+    _G.AutoEatLoop = true
+    task.spawn(function()
+        while _G.AutoEatLoop do
+            if player:FindFirstChild("Hunger") and player:FindFirstChild("Thristy") then
+                local hunger = player.Hunger.Value
+                local thirst = player.Thristy.Value
+                
+                if hunger < threshold then
+                    inventory:FireServer("Use", "Hamburger")
+                    task.wait(0.1)
+                    inventory:FireServer("Use", "Hot Dog")
+                    task.wait(0.2)
+                end
+                
+                if thirst < threshold then
+                    inventory:FireServer("Use", "Water")
+                    task.wait(0.1)
+                    inventory:FireServer("Use", "Cola")
+                    task.wait(0.2)
+                end
+            end
+            task.wait(1)
+        end
+    end)
+end
+
+initAutoEat()
+
 sections.AutoFarmSection:AddToggle({
     enabled = true,
     text = "Auto Farm cement",
@@ -118,55 +149,73 @@ sections.AutoFarmSection:AddToggle({
         if value then
             _G.AutoFarm = true
             local platform = createPlatform()
+            local wantedFrame = game:GetService("Players").LocalPlayer.PlayerGui.Menu.WANTED_Frame
+            
+            wantedFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+                if not wantedFrame.Visible and _G.AutoFarm then
+                    task.spawn(function()
+                        teleport(safePosition)
+                        task.wait(1)
+                        _G.AutoFarm = true
+                    end)
+                end
+            end)
             
             task.spawn(function()
                 while _G.AutoFarm do
-                    local cementsFolder = workspace.Grey_Jobs.CementsFolder
-                    if cementsFolder then
-                        local cementBase = cementsFolder:GetChildren()[3]
-                        if cementBase and cementBase:FindFirstChild("Base") then
-                            local prompt = cementBase.Base.Attachment.ProximityPrompt
-                            if prompt then
-                                teleport(cementBase.Base.Position + Vector3.new(0, 2, 0))
-                                task.wait(0.3)
-                                
-                                prompt.MaxActivationDistance = math.huge
-                                prompt.HoldDuration = 0
-                                prompt.Enabled = true  
-                                fireproximityprompt(prompt)
-                                
-                                teleport(safePosition)
-
-                                local backpack = lp.Backpack
-                                for _, item in pairs(backpack:GetChildren()) do
-                                    if item.Name == "Cement bag" then
-                                        local args = {"Cement bag", 1}
-                                        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer(unpack(args))
+                    if not wantedFrame.Visible then
+                        local cementsFolder = workspace.Grey_Jobs.CementsFolder
+                        if cementsFolder then
+                            local cementBase = cementsFolder:GetChildren()[3]
+                            if not cementBase or not cementBase:FindFirstChild("Base") then
+                                cementBase = cementsFolder:FindFirstChild("Cement")
+                            end
+                            
+                            if cementBase and cementBase:FindFirstChild("Base") then
+                                local prompt = cementBase.Base.Attachment.ProximityPrompt
+                                if prompt then
+                                    teleport(cementBase.Base.Position + Vector3.new(0, 2, 0))
+                                    task.wait(0.3)
+                                    
+                                    prompt.MaxActivationDistance = math.huge
+                                    prompt.HoldDuration = 0
+                                    fireproximityprompt(prompt)
+                                    
+                                    teleport(safePosition)
+                                    
+                                    local startTime = tick()
+                                    while tick() - startTime < 300 and _G.AutoFarm do
+                                        local backpack = lp.Backpack
+                                        for _, item in pairs(backpack:GetChildren()) do
+                                            if item.Name == "Cement bag" then
+                                                local args = {"Cement bag", 1}
+                                                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer(unpack(args))
+                                                task.wait(0.1)
+                                            end
+                                        end
+                                        
+                                        if wantedFrame.Visible then break end
                                         task.wait(0.1)
                                     end
                                 end
-
-                                local startTime = tick()
-                                while tick() - startTime < 300 and _G.AutoFarm do
-                                    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                                        local currentPos = lp.Character.HumanoidRootPart.Position
-                                        local distance = (currentPos - safePosition).Magnitude
-                                        
-                                        if distance > 5 then
-                                            teleport(safePosition)
-                                        end
-                                    end
-                                    task.wait(0.1)
+                            end
+                        end
+                    else
+                        local startTime = tick()
+                        while tick() - startTime < 300 and _G.AutoFarm do
+                            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                                local currentPos = lp.Character.HumanoidRootPart.Position
+                                if (currentPos - safePosition).Magnitude > 5 then
+                                    teleport(safePosition)
                                 end
                             end
+                            task.wait(0.1)
                         end
                     end
                     task.wait(0.1)
                 end
                 
-                if platform then
-                    platform:Destroy()
-                end
+                if platform then platform:Destroy() end
             end)
         else
             _G.AutoFarm = false
@@ -184,55 +233,50 @@ sections.AutoFarmSection:AddToggle({
         if value then
             _G.AutoFarm = true
             local platform = createPlatform()
+            local wantedFrame = game:GetService("Players").LocalPlayer.PlayerGui.Menu.WANTED_Frame
             
             task.spawn(function()
                 while _G.AutoFarm do
+                    if wantedFrame.Visible then
+                        teleport(safePosition)
+                        task.wait(1)
+                        continue
+                    end
+                    
                     local wiresFolder = workspace.Grey_Jobs.Wires
                     if wiresFolder then
-                        local wireBase = wiresFolder:GetChildren()[3]
-                        if wireBase and wireBase:FindFirstChild("Attachment") then
-                            local prompt = wireBase.Attachment.ProximityPrompt
-                            if prompt then
-                                teleport(wireBase.Position + Vector3.new(0, 2, 0))
-                                task.wait(0.3)
-                                
-                                prompt.MaxActivationDistance = math.huge 
-                                prompt.HoldDuration = 0
-                                prompt.Enabled = true  
-                                fireproximityprompt(prompt)
-                                
-                                teleport(safePosition)
-
-                                local backpack = lp.Backpack
-                                for _, item in pairs(backpack:GetChildren()) do
-                                    if item.Name == "Wire" then
-                                        local args = {"Wire", 1}
-                                        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer(unpack(args))
-                                        task.wait(0.1)
-                                    end
-                                end
-
-                                local startTime = tick()
-                                while tick() - startTime < 300 and _G.AutoFarm do
-                                    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                                        local currentPos = lp.Character.HumanoidRootPart.Position
-                                        local distance = (currentPos - safePosition).Magnitude
-                                        
-                                        if distance > 5 then
-                                            teleport(safePosition)
+                        for _, wireBase in ipairs(wiresFolder:GetChildren()) do
+                            if not _G.AutoFarm or wantedFrame.Visible then break end
+                            
+                            if wireBase and wireBase:FindFirstChild("Attachment") then
+                                local prompt = wireBase.Attachment.ProximityPrompt
+                                if prompt then
+                                    teleport(wireBase.Position + Vector3.new(0, 2, 0))
+                                    task.wait(0.3)
+                                    
+                                    prompt.MaxActivationDistance = math.huge
+                                    prompt.HoldDuration = 0
+                                    fireproximityprompt(prompt)
+                                    
+                                    teleport(safePosition)
+                                    task.wait(0.1)
+                                    
+                                    local backpack = lp.Backpack
+                                    for _, item in pairs(backpack:GetChildren()) do
+                                        if item.Name == "Wire" then
+                                            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer("Wire", 1)
+                                            task.wait(0.1)
                                         end
                                     end
-                                    task.wait(0.1)
                                 end
                             end
+                            task.wait(0.1)
                         end
                     end
                     task.wait(0.1)
                 end
                 
-                if platform then
-                    platform:Destroy()
-                end
+                if platform then platform:Destroy() end
             end)
         else
             _G.AutoFarm = false
@@ -240,53 +284,7 @@ sections.AutoFarmSection:AddToggle({
     end
 })
 
-sections.AutoFarmSection:AddSlider({
-    text = "Farm Speed", 
-    flag = 'AutoFarm_Speed', 
-    suffix = "x", 
-    value = 1.0,
-    min = 0.1, 
-    max = 5.0,
-    increment = 0.1,
-    tooltip = "Adjust farming speed multiplier",
-    risky = false,
-    callback = function(value) 
-        print("Farm Speed is now: " .. value)
-    end
-})
 
--- Combat Tab Elements
-sections.CombatMain:AddToggle({
-    enabled = false,
-    text = "Aimbot",
-    flag = "Combat_Aimbot",
-    tooltip = "Automatically aim at enemies",
-    risky = true,
-    callback = function(value)
-        print("Aimbot is now: " .. tostring(value))
-    end
-})
-
-sections.CombatMain:AddList({
-    enabled = true,
-    text = "Target Priority",
-    flag = "Combat_TargetPriority",
-    multi = false,
-    tooltip = "Set target priority for combat",
-    risky = false,
-    dragging = false,
-    focused = false,
-    value = "Closest",
-    values = {
-        "Closest",
-        "Lowest HP",
-        "Highest Level",
-        "Random"
-    },
-    callback = function(value)
-        print("Target Priority is now: " .. value)
-    end
-})
 
 -- Player Tab Elements
 sections.PlayerMain:AddToggle({
@@ -376,51 +374,7 @@ sections.PlayerMain:AddSlider({
     tooltip = "Auto eat/drink when health/hunger below threshold",
     risky = false,
     callback = function(threshold)
-        local inventory = game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("InventoryEvent")
-        
-        task.spawn(function()
-            if lp:FindFirstChild("Thristy") and lp:FindFirstChild("Hunger") then
-                local thirst = lp.Thristy.Value
-                local hunger = lp.Hunger.Value
-
-                if thirst < threshold then
-                    inventory:FireServer("Use", "Water")
-                    task.wait(0.1)
-                    inventory:FireServer("Use", "Cola")
-                end
-
-                if hunger < threshold then
-                    inventory:FireServer("Use", "Hamburger")
-                    task.wait(0.1)
-                    inventory:FireServer("Use", "Hot Dog")
-                end
-            end
-        end)
-
-        if not _G.AutoEatLoop then
-            _G.AutoEatLoop = true
-            task.spawn(function()
-                while _G.AutoEatLoop do
-                    if lp:FindFirstChild("Thristy") and lp:FindFirstChild("Hunger") then
-                        local thirst = lp.Thristy.Value
-                        local hunger = lp.Hunger.Value
-
-                        if thirst < threshold then
-                            inventory:FireServer("Use", "Water")
-                            task.wait(0.1)
-                            inventory:FireServer("Use", "Cola")
-                        end
-
-                        if hunger < threshold then
-                            inventory:FireServer("Use", "Hamburger")
-                            task.wait(0.1)
-                            inventory:FireServer("Use", "Hot Dog")
-                        end
-                    end
-                    task.wait(1)
-                end
-            end)
-        end
+        _G.AutoEatThreshold = threshold
     end
 })
 
