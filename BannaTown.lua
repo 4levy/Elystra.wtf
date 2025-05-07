@@ -264,7 +264,7 @@ sections.AutoFarmSection:AddToggle({
             
             task.spawn(function()
                 while _G.AutoFarm do
-                    checkAndBuyFood() -- Check food/drink levels
+                    checkAndBuyFood()
                     
                     if wantedFrame.Visible then
                         teleport(safePosition)
@@ -371,16 +371,118 @@ sections.AutoFarmSection:AddToggle({
 
 sections.AutoFarmSection:AddToggle({
     enabled = true,
-    text = "Auto Farm Mail Delivery ( Soon )",
+    text = "Auto Farm Mail Delivery ( Buggy )",
     flag = "AutoFarm_Mail",
     tooltip = "Automatically delivers mail",
     risky = true,
     callback = function(value)
         if value then
-            library:SendNotification("UnderDeveloped", 5, Color3.new(1, 0, 0)) 
+            _G.AutoMail = true
+            library:SendNotification("Started Mail Delivery", 2, Color3.new(0, 1, 0))
+            local platform = createPlatform()
+            
+            task.spawn(function()
+                while _G.AutoMail do
+                    local pad = workspace:WaitForChild("Parttimes_Jobs"):WaitForChild("Pad")
+                    if pad then
+                        if not game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Box") and
+                           not game:GetService("Players").LocalPlayer.Character:FindFirstChild("Box") then
+                            local prompt = pad.Attachment.ProximityPrompt
+                            if prompt then
+                                prompt.HoldDuration = 0.25
+                                prompt.KeyboardKeyCode = Enum.KeyCode.E
+                                prompt.ActionText = "Delivery"
+                                
+                                teleport(pad.Position + Vector3.new(0, 2, 0))
+                                task.wait(0.3)
+
+                                local startTime = tick()
+                                repeat
+                                    fireproximityprompt(prompt)
+                                    task.wait(0.3)
+                                until game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Box") or 
+                                      game:GetService("Players").LocalPlayer.Character:FindFirstChild("Box") or 
+                                      (tick() - startTime) > 5
+                                
+                                if game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Box") or 
+                                   game:GetService("Players").LocalPlayer.Character:FindFirstChild("Box") then
+                                    library:SendNotification("Got Mail Box", 1, Color3.new(0, 1, 0))
+                                    teleport(lp.Character.HumanoidRootPart.Position + Vector3.new(0, 15, 0))
+                                else
+                                    library:SendNotification("Failed to get box, retrying...", 1, Color3.new(1, 0, 0))
+                                end
+                            end
+                        end
+                    end
+
+                    local box = game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Box") or
+                                game:GetService("Players").LocalPlayer.Character:FindFirstChild("Box")
+                    
+                    if box then
+                        if box.Parent == game:GetService("Players").LocalPlayer.Backpack then
+                            box.Parent = game:GetService("Players").LocalPlayer.Character
+                        end
+                        
+                        for _, customer in ipairs(workspace:GetChildren()) do
+                            if not _G.AutoMail then break end
+                            
+                            if customer.Name:match("^Customer_") then
+                                local GPSModule = require(game.ReplicatedStorage.Utills.GPSModule)
+                                local NavModule = require(game.ReplicatedStorage.Utills.NavigationModule)
+                                
+                                GPSModule.ClearGPS()
+                                
+                                local targetPos = customer:GetPivot().Position + Vector3.new(0, 15, 0)
+                                teleport(targetPos)
+                                library:SendNotification("Found Customer", 1, Color3.new(0, 1, 0))
+                                task.wait(0.3)
+                                
+                                local deliveryPrompt = customer:FindFirstChild("ProximityPrompt", true)
+                                if deliveryPrompt then
+                                    deliveryPrompt.HoldDuration = 0.25
+                                    deliveryPrompt.KeyboardKeyCode = Enum.KeyCode.E
+                                    deliveryPrompt.ActionText = "Delivery"
+                                    deliveryPrompt.MaxActivationDistance = 10 
+
+                                    local customerPos = customer:GetPivot().Position
+                                    local playerPos = game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position
+                                    
+                                    if (customerPos - playerPos).Magnitude <= 10 then
+                                        fireproximityprompt(deliveryPrompt)
+                                        library:SendNotification("Attempted Delivery", 1, Color3.new(0, 1, 0))
+                                        
+                                        task.wait(0.5)
+                                        
+                                        if (customerPos - playerPos).Magnitude <= 300 then
+                                            NavModule:NavigatTo(customerPos)
+                                        end
+                                    else
+                                        teleport(customerPos + Vector3.new(0, 2, 0))
+                                        task.wait(0.3)
+                                        fireproximityprompt(deliveryPrompt)
+                                    end
+                                else
+                                    library:SendNotification("No Delivery Prompt Found", 1, Color3.new(1, 0, 0))
+                                end
+                                
+                                task.wait(0.5)
+                                break
+                            end
+                        end
+                    end
+                    
+                    task.wait(1)
+                end
+                
+                if platform then platform:Destroy() end
+            end)
+        else
+            _G.AutoMail = false 
+            library:SendNotification("Stopped Mail Delivery", 2, Color3.new(1, 0, 0))
         end
     end
 })
+
 
 sections.AutoFarmSection:AddToggle({
     enabled = true,
