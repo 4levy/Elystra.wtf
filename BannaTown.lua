@@ -151,25 +151,18 @@ sections.AutoFarmSection:AddToggle({
             local platform = createPlatform()
             local wantedFrame = game:GetService("Players").LocalPlayer.PlayerGui.Menu.WANTED_Frame
             
-            wantedFrame:GetPropertyChangedSignal("Visible"):Connect(function()
-                if not wantedFrame.Visible and _G.AutoFarm then
-                    task.spawn(function()
-                        teleport(safePosition)
-                        task.wait(1)
-                        _G.AutoFarm = true
-                    end)
-                end
-            end)
-            
             task.spawn(function()
                 while _G.AutoFarm do
-                    if not wantedFrame.Visible then
-                        local cementsFolder = workspace.Grey_Jobs.CementsFolder
-                        if cementsFolder then
-                            local cementBase = cementsFolder:GetChildren()[3]
-                            if not cementBase or not cementBase:FindFirstChild("Base") then
-                                cementBase = cementsFolder:FindFirstChild("Cement")
-                            end
+                    if wantedFrame.Visible then
+                        teleport(safePosition)
+                        task.wait(1)
+                        continue
+                    end
+                    
+                    local cementsFolder = workspace.Grey_Jobs.CementsFolder
+                    if cementsFolder then
+                        for _, cementBase in ipairs(cementsFolder:GetChildren()) do
+                            if not _G.AutoFarm or wantedFrame.Visible then break end
                             
                             if cementBase and cementBase:FindFirstChild("Base") then
                                 local prompt = cementBase.Base.Attachment.ProximityPrompt
@@ -182,31 +175,15 @@ sections.AutoFarmSection:AddToggle({
                                     fireproximityprompt(prompt)
                                     
                                     teleport(safePosition)
+                                    task.wait(0.1)
                                     
-                                    local startTime = tick()
-                                    while tick() - startTime < 300 and _G.AutoFarm do
-                                        local backpack = lp.Backpack
-                                        for _, item in pairs(backpack:GetChildren()) do
-                                            if item.Name == "Cement bag" then
-                                                local args = {"Cement bag", 1}
-                                                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer(unpack(args))
-                                                task.wait(0.1)
-                                            end
+                                    local backpack = lp.Backpack
+                                    for _, item in pairs(backpack:GetChildren()) do
+                                        if item.Name == "Cement bag" then
+                                            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellEvent"):FireServer("Cement bag", 1)
+                                            task.wait(0.1)
                                         end
-                                        
-                                        if wantedFrame.Visible then break end
-                                        task.wait(0.1)
                                     end
-                                end
-                            end
-                        end
-                    else
-                        local startTime = tick()
-                        while tick() - startTime < 300 and _G.AutoFarm do
-                            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                                local currentPos = lp.Character.HumanoidRootPart.Position
-                                if (currentPos - safePosition).Magnitude > 5 then
-                                    teleport(safePosition)
                                 end
                             end
                             task.wait(0.1)
@@ -284,7 +261,18 @@ sections.AutoFarmSection:AddToggle({
     end
 })
 
+-- Combat Tab Elements
 
+sections.CombatMain:AddButton({
+    text = "Teleport to player",
+    flag = "Combat_TeleportPlayer",
+    tooltip = "Teleport to a player",
+    risky = false,
+    callback = function(value)
+        print("Teleporting to player")
+
+    end
+})
 
 -- Player Tab Elements
 sections.PlayerMain:AddToggle({
