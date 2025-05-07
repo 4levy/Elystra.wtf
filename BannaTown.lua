@@ -258,6 +258,7 @@ sections.AutoFarmSection:AddToggle({
     callback = function(value)
         if value then
             _G.AutoFarm = true
+            library:SendNotification("Started Cement Farming", 2, Color3.new(0, 1, 0))
             local platform = createPlatform()
             local wantedFrame = game:GetService("Players").LocalPlayer.PlayerGui.Menu.WANTED_Frame
             
@@ -267,6 +268,7 @@ sections.AutoFarmSection:AddToggle({
                     
                     if wantedFrame.Visible then
                         teleport(safePosition)
+                        library:SendNotification("Returning to Safe Position", 1, Color3.new(1, 1, 0))
                         task.wait(1)
                         continue
                     end
@@ -280,6 +282,7 @@ sections.AutoFarmSection:AddToggle({
                                 local prompt = cementBase.Base.Attachment.ProximityPrompt
                                 if prompt then
                                     teleport(cementBase.Base.Position + Vector3.new(0, 2, 0))
+                                    library:SendNotification("Stealing Cement...", 1, Color3.new(0, 1, 0))
                                     task.wait(0.3)
                                     
                                     prompt.MaxActivationDistance = math.huge
@@ -287,6 +290,7 @@ sections.AutoFarmSection:AddToggle({
                                     fireproximityprompt(prompt)
                                     
                                     teleport(safePosition)
+                                    library:SendNotification("Returning to Safe Position", 1, Color3.new(1, 1, 0))
                                     task.wait(0.1)
                                 end
                             end
@@ -300,6 +304,7 @@ sections.AutoFarmSection:AddToggle({
             end)
         else
             _G.AutoFarm = false
+            library:SendNotification("Stopped Cement Farming", 2, Color3.new(1, 0, 0))
         end
     end
 })
@@ -313,15 +318,17 @@ sections.AutoFarmSection:AddToggle({
     callback = function(value)
         if value then
             _G.AutoFarm = true
+            library:SendNotification("Started Wire Farming", 2, Color3.new(0, 1, 0))
             local platform = createPlatform()
             local wantedFrame = game:GetService("Players").LocalPlayer.PlayerGui.Menu.WANTED_Frame
             
             task.spawn(function()
                 while _G.AutoFarm do
-                    checkAndBuyFood() -- Check food/drink levels
+                    checkAndBuyFood()
                     
                     if wantedFrame.Visible then
                         teleport(safePosition)
+                        library:SendNotification("Returning to Safe Position", 1, Color3.new(1, 1, 0))
                         task.wait(1)
                         continue
                     end
@@ -335,6 +342,7 @@ sections.AutoFarmSection:AddToggle({
                                 local prompt = wireBase.Attachment.ProximityPrompt
                                 if prompt then
                                     teleport(wireBase.Position + Vector3.new(0, 2, 0))
+                                    library:SendNotification("Stealing Wire...", 1, Color3.new(0, 1, 0))
                                     task.wait(0.3)
                                     
                                     prompt.MaxActivationDistance = math.huge
@@ -342,6 +350,7 @@ sections.AutoFarmSection:AddToggle({
                                     fireproximityprompt(prompt)
                                     
                                     teleport(safePosition)
+                                    library:SendNotification("Returning to Safe Position", 1, Color3.new(1, 1, 0))
                                     task.wait(0.1)
                                 end
                             end
@@ -355,6 +364,7 @@ sections.AutoFarmSection:AddToggle({
             end)
         else
             _G.AutoFarm = false
+            library:SendNotification("Stopped Wire Farming", 2, Color3.new(1, 0, 0))
         end
     end
 })
@@ -796,6 +806,43 @@ sections.MiscMain:AddToggle({
         AntiRagdollEnabled = state
     end
 })
+
+local function setPenguinPrompt(state)
+    local function findPenguinPrompt()
+        for _, model in ipairs(workspace:GetChildren()) do
+            if model:IsA("Model") then
+                local pad = model:FindFirstChild("Mesh/Pad", true)
+                if pad and pad:FindFirstChild("Attachment") then
+                    local prompt = pad.Attachment:FindFirstChild("ProximityPrompt")
+                    if prompt then
+                        return prompt
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+    local prompt = findPenguinPrompt()
+    if prompt then
+        prompt.Enabled = state
+        prompt.MaxActivationDistance = math.huge
+        prompt.HoldDuration = 0
+        library:SendNotification("Penguin Prompt " .. (state and "Enabled" or "Disabled"), 2, Color3.new(0, 1, 0))
+    else
+        library:SendNotification("Penguin Prompt Not Found", 2, Color3.new(1, 0, 0))
+    end
+end
+
+sections.MiscMain:AddToggle({
+    text = "Penguin Seller ProximityPrompt",
+    flag = "Misc_PenguinPrompt",
+    tooltip = "Enable penguin seller proximity prompt",
+    state = true,
+    callback = setPenguinPrompt
+})
+
+setPenguinPrompt(true)
 
 sections.MiscMain:AddColor({
     enabled = true,
