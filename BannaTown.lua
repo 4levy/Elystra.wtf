@@ -102,6 +102,37 @@ local function teleport(v)
     end
 end
 
+local function checkAndBuyFood()
+    local player = lp
+    if not (player:FindFirstChild("Hunger") and player:FindFirstChild("Thristy")) then return end
+    
+    if player.Hunger.Value < 30 or player.Thristy.Value < 30 then
+        local foodItems = {
+            ["Hot Dog"] = true,
+            ["Hamburger"] = true,
+            ["Water"] = true,
+            ["Cola"] = true
+        }
+        
+        for _, item in pairs(workspace.BuyItem:GetChildren()) do
+            if foodItems[item.Name] then
+                local prompt = item:FindFirstChild("ProximityPrompt")
+                if prompt then
+                    teleport(item.Position + Vector3.new(0, 2, 0))
+                    task.wait(0.2)
+                    
+                    for i = 1, 2 do
+                        prompt.MaxActivationDistance = math.huge
+                        prompt.HoldDuration = 0
+                        fireproximityprompt(prompt)
+                        task.wait(0.2)
+                    end
+                end
+            end
+        end
+    end
+end
+
 getgenv().Config = {
     Invite = "NO_DISCORD_INVITE",
     Version = "0.0.1",
@@ -169,7 +200,24 @@ end
 local function initAutoEat()
     local inventory = game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("InventoryEvent")
     local player = game:GetService("Players").LocalPlayer
-    local threshold = 50 
+    local threshold = 50
+
+    local foodItems = {
+        "Hamburger",
+        "Hot Dog", 
+        "Grill Squid",
+        "Donut",
+        "Icecream",
+        "Noodle",
+        "Shrimp Stick"
+    }
+
+    local drinkItems = {
+        "Water",
+        "Cola",
+        "Coffee", 
+        "Smoothie"
+    }
     
     _G.AutoEatLoop = true
     task.spawn(function()
@@ -179,20 +227,22 @@ local function initAutoEat()
                 local thirst = player.Thristy.Value
                 
                 if hunger < threshold then
-                    inventory:FireServer("Use", "Hamburger")
-                    task.wait(0.1)
-                    inventory:FireServer("Use", "Hot Dog")
-                    task.wait(0.2)
+                    for _, food in ipairs(foodItems) do
+                        inventory:FireServer("Use", food)
+                        task.wait(0.15)
+                        if player.Hunger.Value > threshold then break end
+                    end
                 end
                 
                 if thirst < threshold then
-                    inventory:FireServer("Use", "Water")
-                    task.wait(0.1)
-                    inventory:FireServer("Use", "Cola")
-                    task.wait(0.2)
+                    for _, drink in ipairs(drinkItems) do
+                        inventory:FireServer("Use", drink)
+                        task.wait(0.15)
+                        if player.Thristy.Value > threshold then break end
+                    end
                 end
             end
-            task.wait(1)
+            task.wait(0.5)
         end
     end)
 end
@@ -213,6 +263,8 @@ sections.AutoFarmSection:AddToggle({
             
             task.spawn(function()
                 while _G.AutoFarm do
+                    checkAndBuyFood() -- Check food/drink levels
+                    
                     if wantedFrame.Visible then
                         teleport(safePosition)
                         task.wait(1)
@@ -266,6 +318,8 @@ sections.AutoFarmSection:AddToggle({
             
             task.spawn(function()
                 while _G.AutoFarm do
+                    checkAndBuyFood() -- Check food/drink levels
+                    
                     if wantedFrame.Visible then
                         teleport(safePosition)
                         task.wait(1)
