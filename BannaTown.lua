@@ -249,6 +249,43 @@ end
 
 initAutoEat()
 
+
+sections.AutoFarmSection:AddButton({
+    text = "LOAD MAP FIRST!!!!",
+    flag = "AutoFarm_LoadMap",
+    tooltip = "LOAD MAP SCRIPT",
+    callback = function()
+        local lp = game:GetService("Players").LocalPlayer
+        local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+
+        if not hrp then
+            library:SendNotification("HumanoidRootPart not found!", 2, Color3.new(1, 0, 0))
+            return
+        end
+
+        local originalCFrame = hrp.CFrame
+
+        local teleportPositions = {
+            Vector3.new(407, 269, 1194),
+            Vector3.new(-1190, 212, 870),
+            Vector3.new(-45, 117, 1393),
+            Vector3.new(-352, 91, 287),
+            Vector3.new(1121, 205, 7),
+        }
+
+        task.spawn(function()
+            for _, pos in ipairs(teleportPositions) do
+                hrp.CFrame = CFrame.new(pos)
+                task.wait(1)
+            end
+
+            hrp.CFrame = originalCFrame
+            library:SendNotification("Returned to original position", 2, Color3.new(0, 1, 0))
+        end)
+    end
+})
+
+
 sections.AutoFarmSection:AddToggle({
     enabled = true,
     text = "Auto Farm cement",
@@ -371,11 +408,14 @@ sections.AutoFarmSection:AddToggle({
 
 sections.AutoFarmSection:AddToggle({
     enabled = true,
-    text = "Auto Farm Mail Delivery ( Buggy )",
+    text = "Auto Farm Mail Delivery",
     flag = "AutoFarm_Mail",
-    tooltip = "Automatically delivers mail",
+    tooltip = "Automatically delivers mail to your assigned customers only",
     risky = true,
     callback = function(value)
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+
         if value then
             _G.AutoMail = true
             library:SendNotification("Started Mail Delivery", 2, Color3.new(0, 1, 0))
@@ -384,75 +424,77 @@ sections.AutoFarmSection:AddToggle({
             task.spawn(function()
                 while _G.AutoMail do
                     local pad = workspace:WaitForChild("Parttimes_Jobs"):WaitForChild("Pad")
-                    if pad then
-                        if not game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Box") and
-                           not game:GetService("Players").LocalPlayer.Character:FindFirstChild("Box") then
-                            local prompt = pad.Attachment.ProximityPrompt
-                            if prompt then
-                                prompt.HoldDuration = 0.25
-                                prompt.KeyboardKeyCode = Enum.KeyCode.E
-                                prompt.ActionText = "Delivery"
-                                
-                                teleport(pad.Position + Vector3.new(0, 2, 0))
-                                task.wait(0.3)
+                    if pad and not LocalPlayer.Backpack:FindFirstChild("Box") and not LocalPlayer.Character:FindFirstChild("Box") then
+                        local prompt = pad:FindFirstChild("Attachment") and pad.Attachment:FindFirstChild("ProximityPrompt")
+                        if prompt then
+                            prompt.HoldDuration = 0.25
+                            prompt.KeyboardKeyCode = Enum.KeyCode.E
+                            prompt.ActionText = "Delivery"
+                            
+                            teleport(pad.Position + Vector3.new(0, 2, 0))
+                            task.wait(0.3)
 
-                                local startTime = tick()
-                                repeat
-                                    fireproximityprompt(prompt)
-                                    task.wait(0.3)
-                                until game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Box") or 
-                                      game:GetService("Players").LocalPlayer.Character:FindFirstChild("Box") or 
-                                      (tick() - startTime) > 5
-                                
-                                if game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Box") or 
-                                   game:GetService("Players").LocalPlayer.Character:FindFirstChild("Box") then
-                                    library:SendNotification("Got Mail Box", 1, Color3.new(0, 1, 0))
-                                    teleport(lp.Character.HumanoidRootPart.Position + Vector3.new(0, 15, 0))
-                                else
-                                    library:SendNotification("Failed to get box, retrying...", 1, Color3.new(1, 0, 0))
-                                end
+                            local startTime = tick()
+                            repeat
+                                fireproximityprompt(prompt)
+                                task.wait(0.3)
+                            until LocalPlayer.Backpack:FindFirstChild("Box") or 
+                                  LocalPlayer.Character:FindFirstChild("Box") or 
+                                  (tick() - startTime) > 5
+                            
+                            if LocalPlayer.Backpack:FindFirstChild("Box") or LocalPlayer.Character:FindFirstChild("Box") then
+                                library:SendNotification("Got Mail Box", 1, Color3.new(0, 1, 0))
+                                teleport(LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 15, 0))
+                            else
+                                library:SendNotification("Failed to get box, retrying...", 1, Color3.new(1, 0, 0))
                             end
                         end
                     end
 
-                    local box = game:GetService("Players").LocalPlayer.Backpack:FindFirstChild("Box") or
-                                game:GetService("Players").LocalPlayer.Character:FindFirstChild("Box")
+                    local box = LocalPlayer.Backpack:FindFirstChild("Box") or LocalPlayer.Character:FindFirstChild("Box")
                     
                     if box then
-                        if box.Parent == game:GetService("Players").LocalPlayer.Backpack then
-                            box.Parent = game:GetService("Players").LocalPlayer.Character
+                        if box.Parent == LocalPlayer.Backpack then
+                            box.Parent = LocalPlayer.Character
                         end
-                        
+
                         for _, customer in ipairs(workspace:GetChildren()) do
                             if not _G.AutoMail then break end
+
+                            local belongsToPlayer = false
                             
-                            if customer.Name:match("^Customer_") then
+                            if customer.Name:match("^Customer_" .. LocalPlayer.Name) then
+                                belongsToPlayer = true
+                            
+                            elseif customer:FindFirstChild("Owner") and customer.Owner:IsA("StringValue") and customer.Owner.Value == LocalPlayer.Name then
+                                belongsToPlayer = true
+                            end
+
+                            if belongsToPlayer then
                                 local GPSModule = require(game.ReplicatedStorage.Utills.GPSModule)
                                 local NavModule = require(game.ReplicatedStorage.Utills.NavigationModule)
-                                
+
                                 GPSModule.ClearGPS()
                                 
                                 local targetPos = customer:GetPivot().Position + Vector3.new(0, 15, 0)
                                 teleport(targetPos)
-                                library:SendNotification("Found Customer", 1, Color3.new(0, 1, 0))
-                                task.wait(0.3)
-                                
-                                local deliveryPrompt = customer:FindFirstChild("ProximityPrompt", true)
+                                library:SendNotification("Found Your Customer", 1, Color3.new(0, 1, 0))
+                                task.wait(3)
+
+                                local deliveryPrompt = customer:FindFirstChildWhichIsA("ProximityPrompt", true)
                                 if deliveryPrompt then
                                     deliveryPrompt.HoldDuration = 0.25
                                     deliveryPrompt.KeyboardKeyCode = Enum.KeyCode.E
                                     deliveryPrompt.ActionText = "Delivery"
-                                    deliveryPrompt.MaxActivationDistance = 10 
+                                    deliveryPrompt.MaxActivationDistance = 10
 
                                     local customerPos = customer:GetPivot().Position
-                                    local playerPos = game:GetService("Players").LocalPlayer.Character.HumanoidRootPart.Position
+                                    local playerPos = LocalPlayer.Character.HumanoidRootPart.Position
                                     
                                     if (customerPos - playerPos).Magnitude <= 10 then
                                         fireproximityprompt(deliveryPrompt)
                                         library:SendNotification("Attempted Delivery", 1, Color3.new(0, 1, 0))
-                                        
                                         task.wait(0.5)
-                                        
                                         if (customerPos - playerPos).Magnitude <= 300 then
                                             NavModule:NavigatTo(customerPos)
                                         end
@@ -466,23 +508,37 @@ sections.AutoFarmSection:AddToggle({
                                 end
                                 
                                 task.wait(0.5)
-                                break
+                                break -- only one customer per loop
                             end
                         end
                     end
-                    
+
                     task.wait(1)
                 end
-                
+
                 if platform then platform:Destroy() end
             end)
         else
-            _G.AutoMail = false 
+            _G.AutoMail = false
             library:SendNotification("Stopped Mail Delivery", 2, Color3.new(1, 0, 0))
         end
     end
 })
 
+
+
+sections.AutoFarmSection:AddToggle({
+    enabled = true,
+    text = "Auto Farm Mango ( Soon )",
+    flag = "AutoFarm_Mango",
+    tooltip = "Automatically collect mango",
+    risky = true,
+    callback = function(value)
+        if value then
+        library:SendNotification("UnderDeveloped", 5, Color3.new(1, 0, 0)) 
+        end
+    end
+})
 
 sections.AutoFarmSection:AddToggle({
     enabled = true,
@@ -499,6 +555,7 @@ sections.AutoFarmSection:AddToggle({
 
 
 _G.ArrestedPlayers = {}
+_G.UnragdollLoop = false
 
 sections.AutoFarmSection:AddButton({
     enabled = true,
@@ -555,7 +612,7 @@ sections.AutoFarmSection:AddButton({
     tooltip = "Refresh the list of criminals with rewards",
     callback = function()
         local criminals = refreshCriminalsList()
-        task.wait(0.1) -- Give time for async operations
+        task.wait(0.1)
         
         if #criminals > 0 then
             local criminalNames = ""
@@ -567,7 +624,6 @@ sections.AutoFarmSection:AddButton({
             criminalNames = criminalNames:sub(1, -3)
             library:SendNotification("Found Criminals: " .. criminalNames, 2, Color3.new(0, 1, 0))
             
-            -- Update current target if none is set
             if not _G.CurrentTarget then
                 for _, criminal in ipairs(criminals) do
                     if not _G.ArrestedPlayers[criminal.Name] then
@@ -583,8 +639,6 @@ sections.AutoFarmSection:AddButton({
     end
 })
 
-_G.UnragdollLoop = false
-
 
 local function startUnragdollLoop()
     if _G.UnragdollLoop then return end
@@ -598,7 +652,6 @@ local function startUnragdollLoop()
         end
     end)
 end
-
 
 sections.AutoFarmSection:AddToggle({
     enabled = true,
@@ -1149,6 +1202,51 @@ local function setPenguinPrompt(state)
 end
 
 
+_G.HideUsername = true
+
+sections.MiscMain:AddButton({
+    text = "Hide Username",
+    flag = "Misc_hideusername",
+    tooltip = "Change your DisplayName locally to Elystra.wtf",
+    callback = function()
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+        
+        local function updateDisplayName(character)
+            if character then
+                local head = character:WaitForChild("Head", 2)
+                if head then
+                    local nameTag = head:FindFirstChild("NameTag", true)
+                    if nameTag then
+                        local displayName = nameTag:FindFirstChild("DisplayName")
+                        if displayName and displayName:IsA("TextLabel") then
+                            displayName.Text = "Elystra.wtf"
+                        end
+                    end
+                end
+            end
+        end
+        
+        if LocalPlayer.Character then
+            updateDisplayName(LocalPlayer.Character)
+        end
+        
+        LocalPlayer.CharacterAdded:Connect(function(character)
+            updateDisplayName(character)
+        end)
+        
+        task.spawn(function()
+            while task.wait(1) do
+                if LocalPlayer.Character then
+                    updateDisplayName(LocalPlayer.Character)
+                end
+            end
+        end)
+        
+        library:SendNotification("Username Hidden Permanently", 2, Color3.new(0, 1, 0))
+    end
+})
+
 sections.MiscMain:AddToggle({
     text = "Auto Unragdoll",
     flag = "Misc_AutoUnragdoll",
@@ -1162,7 +1260,6 @@ sections.MiscMain:AddToggle({
         end
     end
 })
-
 
 sections.MiscMain:AddToggle({
     text = "Penguin Seller ProximityPrompt",
