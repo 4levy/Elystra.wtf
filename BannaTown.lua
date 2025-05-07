@@ -271,6 +271,7 @@ sections.AutoFarmSection:AddButton({
             Vector3.new(-45, 117, 1393),
             Vector3.new(-352, 91, 287),
             Vector3.new(1121, 205, 7),
+            Vector3.new(-1380, 278, -315),
         }
 
         task.spawn(function()
