@@ -1,6 +1,6 @@
 -- Configuration
 local CONFIG = {
-    VERSION = "0.0.1",
+    VERSION = "0.0.2",
     REPO_OWNER = "4levy",
     REPO_NAME = "Elystra.wtf",
     BRANCH = "main",
@@ -97,7 +97,7 @@ end
 -- Game detection and script management
 local GameScripts = {
     -- City Banna
-    [6925849909] = {
+    [114116662845070] = {
         name = "City Banna",
         script = "CityBanna.lua"
     },
@@ -108,9 +108,15 @@ local GameScripts = {
         script = "BannaTown.lua"
     },
     
+    [115842829430610] = {
+        name = "Thai Donate",
+        script = "ThaiDonate.lua"
+    },
+
     -- Add more games below
     -- [GameID] = { name = "Game Name", script = "ScriptFile.lua" }
 }
+
 
 -- Main loader function
 local function loadScript()
