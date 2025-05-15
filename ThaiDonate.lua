@@ -1,11 +1,12 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
-
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 
 local function safeCall(func)
     return function(...)
@@ -16,7 +17,7 @@ local function safeCall(func)
     end
 end
 
-local CoinFarmer = {
+local HeartFarm = {
     autoFarmEnabled = false,
     currentCoinIndex = 1,
     miningAttempts = 0,
@@ -169,10 +170,11 @@ local CoinFarmer = {
 
 local Window = Fluent:CreateWindow({
     Title = "Elystra.wtf",
+    SubTitle = "0.0.1",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true,
-    Theme = "Light",
+    Theme = "Amethyst",
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -184,21 +186,21 @@ local Tabs = {
 -- UI Elements
 do
     local AutoFarmToggle = Tabs.Main:AddToggle("AutoFarm", {
-        Title = "Auto Farm Coins",
+        Title = "Auto Farm Heart",
         Default = false,
         Callback = function(value)
-            CoinFarmer:toggleAutoFarm(value)
+            HeartFarm:toggleAutoFarm(value)
         end
     })
 
     local MiningAttemptsInput = Tabs.Main:AddInput("MiningAttempts", {
         Title = "Max Mining Attempts",
-        Default = tostring(CoinFarmer.maxMiningAttempts),
+        Default = tostring(HeartFarm.maxMiningAttempts),
         Placeholder = "5",
         Numeric = true,
         Finished = true,
         Callback = function(Value)
-            CoinFarmer.maxMiningAttempts = tonumber(Value) or 4
+            HeartFarm.maxMiningAttempts = tonumber(Value) or 4
         end
     })
 
@@ -209,10 +211,10 @@ do
 
     spawn(function()
         while true do
-            if CoinFarmer.autoFarmEnabled then
+            if HeartFarm.autoFarmEnabled then
                 StatusLabel:SetContent(string.format(
                     "Farming - Current Coin Index: %d", 
-                    CoinFarmer.currentCoinIndex
+                    HeartFarm.currentCoinIndex
                 ))
             else
                 StatusLabel:SetContent("Idle")
@@ -226,13 +228,11 @@ SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
-InterfaceManager:SetFolder("CoinFarmerScript")
-SaveManager:SetFolder("CoinFarmerScript/game-specific")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 
 Window:SelectTab(1)
-CoinFarmer:init()
+HeartFarm:init()
 
 Fluent:Notify({
     Title = "Elystra.wtf",
