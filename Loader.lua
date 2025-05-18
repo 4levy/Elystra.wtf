@@ -1,6 +1,6 @@
 -- Configuration
 local CONFIG = {
-    VERSION = "0.0.2",
+    VERSION = "0.0.3",
     REPO_OWNER = "4levy",
     REPO_NAME = "Elystra.wtf",
     BRANCH = "main",
@@ -55,7 +55,7 @@ Notification.show = function(title, message, duration)
             Title = title,
             Text = message,
             Duration = duration,
-            Icon = "rbxassetid://89730871983807" 
+            Icon = "rbxassetid://105192978651161" 
         })
     end)
 end
@@ -108,6 +108,7 @@ local GameScripts = {
         script = "BannaTown.lua"
     },
     
+    -- Thai Donate
     [115842829430610] = {
         name = "Thai Donate",
         script = "ThaiDonate.lua"
@@ -209,4 +210,4 @@ if not success then
     end)
 end
 
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/4levy/Elystra.wtf/refs/heads/main/Loader.lua"))()
+-- // loadstring(game:HttpGet("https://raw.githubusercontent.com/4levy/Elystra.wtf/refs/heads/main/Loader.lua"))()
