@@ -1,5 +1,7 @@
-## YES I KNOW YALL CAN JUST SKID THESE CODE I DONT CARE I WAS LAZY JUST TO OBF THE SCRIPT ( some map )
-Skiderrr :V
+> **NOTE:** Yeah, I know this code can be skidded easily. I just didn’t bother obfuscating it — I was lazy.
+> If you're gonna skid it, at least give credit.
+
+[Offical discord server](https://discord.gg/DwfVqEqcbr)
 
 <hr>
 <p align="center">
