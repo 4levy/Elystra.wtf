@@ -1,5 +1,5 @@
 local CONFIG = {
-    VERSION = "0.0.3a",
+    VERSION = "0.0.4",
     REPO_OWNER = "4levy",
     REPO_NAME = "Elystra.wtf",
     BRANCH = "main",
@@ -7,6 +7,7 @@ local CONFIG = {
     SHOW_NOTIFICATIONS = true,
     DEBUG_MODE = false
 }
+
 local Utils = {}
 Utils.getRawURL = function(path)
     return string.format(
@@ -17,12 +18,14 @@ Utils.getRawURL = function(path)
         path
     )
 end
+
 Utils.log = function(message, level)
     level = level or "INFO"
     if CONFIG.DEBUG_MODE or level == "ERROR" then
         print(string.format("[Elystra.wtf][%s] %s", level, message))
     end
 end
+
 Utils.safeHttpGet = function(url)
     local success, result =
         pcall(
@@ -37,6 +40,7 @@ Utils.safeHttpGet = function(url)
         return false, "HTTP request failed"
     end
 end
+
 local Notification = {}
 Notification.show = function(title, message, duration)
     if not CONFIG.SHOW_NOTIFICATIONS then
@@ -58,6 +62,7 @@ Notification.show = function(title, message, duration)
         end
     )
 end
+
 local VersionControl = {}
 VersionControl.check = function()
     if not CONFIG.CHECK_FOR_UPDATES then
@@ -81,20 +86,25 @@ VersionControl.check = function()
     end
     return true
 end
+
 local GameScripts = {
     [114116662845070] = {
         name = "City Banna",
-        script = "CityBanna.lua"
+        script = "CityBanna.lua",
+        status = true 
     },
     [77837537595343] = {
         name = "Banna Town",
-        script = "BannaTown.lua"
+        script = "BannaTown.lua",
+        status = true 
     },
     [115842829430610] = {
         name = "Thai Donate",
-        script = "ThaiDonate.lua"
+        script = "ThaiDonate.lua",
+        status = false  
     }
 }
+
 local function loadScript()
     local placeId = game.PlaceId
     local player = game.Players.LocalPlayer
@@ -105,6 +115,18 @@ local function loadScript()
     VersionControl.check()
     local gameInfo = GameScripts[placeId]
     if gameInfo then
+        if not gameInfo.status then
+            Utils.log("Script for " .. gameInfo.name .. " is currently disabled", "INFO")
+            Notification.show("Elystra.wtf", gameInfo.name .. " is currently under maintenance", 5)
+            wait(3)
+            pcall(
+                function()
+                    player:Kick("\n⭐ Elystra.wtf ⭐\n\n" .. gameInfo.name .. " is currently disabled for maintenance!")
+                end
+            )
+            return
+        end
+        
         Notification.show("Elystra.wtf", "Loading script for " .. gameInfo.name .. "...", 3)
         Utils.log("Loading script for: " .. gameInfo.name, "INFO")
         local success, scriptContent = Utils.safeHttpGet(Utils.getRawURL(gameInfo.script))
@@ -138,11 +160,12 @@ local function loadScript()
         wait(3)
         pcall(
             function()
-                player:Kick("\n⭐ Elystra.wtf ⭐\n\nThis game is not currently supported!.")
+                player:Kick("\n⭐ Elystra.wtf ⭐\n\nThis game is not currently supported!")
             end
         )
     end
 end
+
 local success, error = pcall(loadScript)
 if not success then
     Utils.log("Critical error in loader: " .. tostring(error), "ERROR")
