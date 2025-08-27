@@ -1,4 +1,4 @@
-> **NOTE:** Yeah, I know this code can be skidded easily. I just didn’t bother obfuscating it — I was lazy.
+> **NOTE:** Yeah, I know this code can be skidded easily. I just didn’t bother obfuscating it, I was lazy.
 > If you're gonna skid it, at least give credit.
 
 [Offical discord server](https://discord.gg/DwfVqEqcbr)
