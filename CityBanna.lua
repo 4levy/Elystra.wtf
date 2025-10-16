@@ -5,10 +5,9 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
-local RemoteEvent = ReplicatedStorage:WaitForChild("RemoteEvent")
 
 local UI = Venyx.new({
-    title = "Elystra.wtf | Beta | V0.0.2"
+    title = "Elystra.wtf | Beta | V0.0.3"
     
 })
 
